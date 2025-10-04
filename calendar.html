@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalendar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      background: #fafafa;
+      padding: 10px;
+    }
+    h2 { margin: 10px 0; }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin: 10px 0;
+    }
+    .day {
+      padding: 10px;
+      border-radius: 6px;
+      background: white;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      user-select: none;
+    }
+    .day.off { background: #ffcccb; }
+    .day.vacation { background: #b3e5fc; }
+    button {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h2 id="title"></h2>
+  <button onclick="setMode('off')">Slobodni dani</button>
+  <button onclick="setMode('vacation')">Godišnji odmor</button>
+  <button onclick="window.location='index.html'">⬅ Nazad</button>
+
+  <div id="calendar" class="calendar"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const user = params.get('user');
+    document.getElementById('title').textContent = `Kalendar: ${user}`;
+    
+    let mode = 'off';
+    const year = new Date().getFullYear();
+    const key = `calendar_${user}_${year}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+
+    const calendar = document.getElementById('calendar');
+    const totalDays = new Date(year, 11, 31).getDate();
+    const start = new Date(year, 0, 1);
+
+    for (let m = 0; m < 12; m++) {
+      const daysInMonth = new Date(year, m + 1, 0).getDate();
+      for (let d = 1; d <= daysInMonth; d++) {
+        const id = `${year}-${m + 1}-${d}`;
+        const day = document.createElement('div');
+        day.textContent = `${d}.${m + 1}.`;
+        day.className = 'day';
+        if (data[id] === 'off') day.classList.add('off');
+        if (data[id] === 'vacation') day.classList.add('vacation');
+        day.onclick = () => toggleDay(id, day);
+        calendar.appendChild(day);
+      }
+    }
+
+    function setMode(m) { mode = m; }
+
+    function toggleDay(id, el) {
+      if (data[id] === mode) {
+        delete data[id];
+        el.className = 'day';
+      } else {
+        data[id] = mode;
+        el.className = 'day ' + mode;
+      }
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+  </script>
+</body>
+</html>
