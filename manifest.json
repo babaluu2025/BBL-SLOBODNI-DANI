@@ -1,10 +1,11 @@
 {
-  "name": "Kalendar Zaposlenih",
-  "short_name": "Zaposleni",
-  "start_url": "index.html",
+  "name": "Kalendar zaposlenih",
+  "short_name": "Kalendar",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f4f4f4",
-  "theme_color": "#007bff",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
