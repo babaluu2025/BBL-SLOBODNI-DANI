@@ -3,196 +3,84 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Evidencija slobodnih dana</title>
+  <title>Zaposleni</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
+      background: #f4f4f4;
       margin: 0;
-      background-color: #f5f5f5;
+      padding: 20px;
     }
-
-    .header {
-      background-color: #007bff;
-      color: white;
-      padding: 15px;
-      font-size: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    h1 {
+      margin-bottom: 20px;
     }
-
-    button {
-      font-size: 16px;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 8px;
-      margin: 5px;
-      cursor: pointer;
-    }
-
-    .back-btn {
-      background-color: #ccc;
-    }
-
-    .mode-btn {
-      font-weight: bold;
-    }
-
-    .calendar {
+    .grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 10px;
-      justify-content: center;
-      margin: 20px;
     }
-
-    .day {
-      background-color: white;
-      padding: 10px;
+    button {
+      padding: 20px;
+      font-size: 16px;
+      border: none;
       border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       cursor: pointer;
-      box-shadow: 0 0 3px rgba(0,0,0,0.1);
+      transition: transform 0.1s;
     }
-
-    .day.selected-free {
-      background-color: #ff7b7b;
+    button:active {
+      transform: scale(0.97);
+    }
+    #manager {
+      background: #007bff;
       color: white;
-    }
-
-    .day.selected-vacation {
-      background-color: #7bff9e;
-      color: black;
-    }
-
-    .nav-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .nav-buttons button {
-      background-color: #007bff;
-      color: white;
+      font-weight: bold;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 12px;
+      width: 100%;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <button class="back-btn" onclick="goBack()">← Nazad</button>
-    <div id="employeeName">Zaposleni</div>
-  </div>
-
-  <div>
-    <button id="freeBtn" class="mode-btn" style="background-color:#ff7b7b;">Slobodni dan</button>
-    <button id="vacationBtn" class="mode-btn" style="background-color:#7bff9e;">Godišnji odmor</button>
-  </div>
-
-  <h2 id="monthYear"></h2>
-  <div class="calendar" id="calendar"></div>
-
-  <div class="nav-buttons">
-    <button onclick="prevMonth()">← Prethodni</button>
-    <button onclick="nextMonth()">Sledeći →</button>
-  </div>
+  <h1>Zaposleni</h1>
+  <div class="grid" id="employees"></div>
+  <button id="manager" onclick="window.location='manager.html'">👔 Menadžer</button>
 
   <script>
-    const employeeName = localStorage.getItem("selectedEmployee") || "zaposleni";
-    document.getElementById("employeeName").textContent = employeeName;
+    const container = document.getElementById('employees');
+    const total = 50;
 
-    let currentMonth = new Date().getMonth();
-    let currentYear = new Date().getFullYear();
-    let mode = "free"; // 'free' = slobodni, 'vacation' = godišnji
+    for (let i = 1; i <= total; i++) {
+      const nameKey = `employee_${i}_name`;
+      const savedName = localStorage.getItem(nameKey) || `Zaposleni ${i}`;
 
-    const freeDays = JSON.parse(localStorage.getItem(employeeName + "_freeDays") || "{}");
-    const vacationDays = JSON.parse(localStorage.getItem(employeeName + "_vacationDays") || "{}");
+      const btn = document.createElement('button');
+      btn.textContent = savedName;
 
-    const calendarEl = document.getElementById("calendar");
-    const monthYearEl = document.getElementById("monthYear");
+      // Klik otvara kalendar
+      btn.addEventListener('click', () => {
+        window.location = `calendar.html?user=${encodeURIComponent(btn.textContent)}`;
+      });
 
-    document.getElementById("freeBtn").addEventListener("click", () => {
-      mode = "free";
-      renderCalendar();
-    });
+      // Dugi klik menja ime
+      let pressTimer;
+      btn.addEventListener('mousedown', () => {
+        pressTimer = setTimeout(() => {
+          const newName = prompt("Unesi ime zaposlenog:", btn.textContent);
+          if (newName) {
+            btn.textContent = newName;
+            localStorage.setItem(nameKey, newName);
+          }
+        }, 600);
+      });
+      btn.addEventListener('mouseup', () => clearTimeout(pressTimer));
 
-    document.getElementById("vacationBtn").addEventListener("click", () => {
-      mode = "vacation";
-      renderCalendar();
-    });
-
-    function renderCalendar() {
-      calendarEl.innerHTML = "";
-      const monthNames = ["Januar","Februar","Mart","April","Maj","Jun","Jul","Avgust","Septembar","Oktobar","Novembar","Decembar"];
-      monthYearEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
-
-      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-      const storage = mode === "free" ? freeDays : vacationDays;
-      const storageKey = currentYear + "-" + currentMonth;
-
-      for (let i = 0; i < firstDay; i++) {
-        const emptyDiv = document.createElement("div");
-        calendarEl.appendChild(emptyDiv);
-      }
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const div = document.createElement("div");
-        div.className = "day";
-        div.textContent = day;
-
-        const selected = storage[storageKey]?.includes(day);
-        if (selected) {
-          div.classList.add(mode === "free" ? "selected-free" : "selected-vacation");
-        }
-
-        div.addEventListener("click", () => toggleDay(day));
-        calendarEl.appendChild(div);
-      }
+      container.appendChild(btn);
     }
-
-    function toggleDay(day) {
-      const storage = mode === "free" ? freeDays : vacationDays;
-      const key = currentYear + "-" + currentMonth;
-
-      if (!storage[key]) storage[key] = [];
-
-      const index = storage[key].indexOf(day);
-      if (index > -1) {
-        storage[key].splice(index, 1);
-      } else {
-        storage[key].push(day);
-      }
-
-      const keyName = mode === "free" ? "_freeDays" : "_vacationDays";
-      localStorage.setItem(employeeName + keyName, JSON.stringify(storage));
-      renderCalendar();
-    }
-
-    function prevMonth() {
-      currentMonth--;
-      if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-      }
-      renderCalendar();
-    }
-
-    function nextMonth() {
-      currentMonth++;
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-      }
-      renderCalendar();
-    }
-
-    function goBack() {
-      window.location.href = "zaposleni.html"; // kasnije lista zaposlenih
-    }
-
-    renderCalendar();
   </script>
 </body>
 </html>
