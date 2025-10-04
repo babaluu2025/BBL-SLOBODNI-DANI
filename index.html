@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Evidencija zaposlenih</title>
+<title>Evidencija slobodnih dana</title>
 <style>
   body { font-family: sans-serif; background:#f5f5f5; margin:0; }
   .screen { display:none; padding:10px; }
@@ -19,11 +19,18 @@
     background:#007bff; color:white; padding:10px; font-size:18px;
   }
   #employeeList { max-height:80vh; overflow-y:auto; }
-  #calendarArea { text-align:center; margin-top:20px; }
   .backBtn {
     background:#ccc; border:none; border-radius:8px; padding:10px 15px;
     margin-right:10px; font-weight:bold;
   }
+  .calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-top:10px; }
+  .day { background:#fff; border-radius:8px; padding:10px; text-align:center; cursor:pointer; }
+  .off { background:#ffaaaa; }
+  .vac { background:#aaffaa; }
+  .controls { margin-top:10px; display:flex; gap:10px; justify-content:center; }
+  .controls button { padding:10px 15px; border:none; border-radius:8px; font-weight:bold; }
+  .highlight { background:yellow; }
+  #monthHeader { text-align:center; font-size:20px; margin-top:10px; }
 </style>
 </head>
 <body>
@@ -31,7 +38,7 @@
 <!-- Glavni ekran -->
 <div id="home" class="screen active">
   <div class="topbar">
-    <div>Evidencija zaposlenih</div>
+    <div>Zaposleni</div>
     <div>
       <button class="backBtn" onclick="openManager()">Menadžer</button>
       <button class="backBtn" onclick="resetAll()">Reset</button>
@@ -46,9 +53,15 @@
     <button class="backBtn" onclick="goHome()">&larr; Nazad</button>
     <div id="empName"></div>
   </div>
-  <div id="calendarArea">
-    <!-- Ovdje ćemo ubaciti kalendar -->
-    <p>Kalendar će biti ovde (Faza 2).</p>
+  <div class="controls">
+    <button id="offBtn" onclick="setMode('off')" style="background:#ff8888;">Slobodni dan</button>
+    <button id="vacBtn" onclick="setMode('vac')" style="background:#88ff88;">Godišnji odmor</button>
+  </div>
+  <div id="monthHeader"></div>
+  <div id="calendarArea" class="calendar"></div>
+  <div class="controls">
+    <button onclick="prevMonth()">&larr; Prethodni</button>
+    <button onclick="nextMonth()">Sledeći &rarr;</button>
   </div>
 </div>
 
@@ -62,15 +75,17 @@
 </div>
 
 <script>
-let employees = JSON.parse(localStorage.getItem("employees")||"[]");
+let employees = JSON.parse(localStorage.getItem("employees_v2")||"[]");
 if(employees.length===0){
-  for(let i=1;i<=50;i++){ employees.push({name:"Zaposleni "+i, order:i}); }
+  for(let i=1;i<=50;i++){ employees.push({name:"Zaposleni "+i, order:i, off:[], vac:[]}); }
   saveEmployees();
 }
 
-function saveEmployees(){
-  localStorage.setItem("employees", JSON.stringify(employees));
-}
+let currentEmp=null;
+let currentMode='off';
+let currentDate=new Date();
+
+function saveEmployees(){ localStorage.setItem("employees_v2", JSON.stringify(employees)); }
 
 function showScreen(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -81,20 +96,16 @@ function loadEmployees(){
   let list=document.getElementById("employeeList");
   list.innerHTML="";
   employees.sort((a,b)=>a.order-b.order);
-  employees.forEach((emp,i)=>{
+  employees.forEach((emp)=>{
     let btn=document.createElement("button");
     btn.className="btn";
     btn.textContent=emp.name;
     btn.onclick=()=>openCalendar(emp.name);
     // duži klik za promenu imena
     let pressTimer;
-    btn.addEventListener("touchstart", ()=>{ 
-      pressTimer=setTimeout(()=>renameEmployee(emp.name),700); 
-    });
+    btn.addEventListener("touchstart", ()=>{ pressTimer=setTimeout(()=>renameEmployee(emp.name),700); });
     btn.addEventListener("touchend", ()=>clearTimeout(pressTimer));
-    btn.addEventListener("mousedown", ()=>{ 
-      pressTimer=setTimeout(()=>renameEmployee(emp.name),700); 
-    });
+    btn.addEventListener("mousedown", ()=>{ pressTimer=setTimeout(()=>renameEmployee(emp.name),700); });
     btn.addEventListener("mouseup", ()=>clearTimeout(pressTimer));
     list.appendChild(btn);
   });
@@ -105,29 +116,98 @@ function renameEmployee(oldName){
   if(newName && newName.trim()!==""){
     let emp=employees.find(e=>e.name===oldName);
     emp.name=newName.trim();
-    // pomeri na vrh
     emp.order=Math.min(...employees.map(e=>e.order))-1;
-    saveEmployees();
-    loadEmployees();
+    saveEmployees(); loadEmployees();
   }
 }
 
 function openCalendar(name){
+  currentEmp=employees.find(e=>e.name===name);
   document.getElementById("empName").textContent=name;
+  renderCalendar();
   showScreen("calendarScreen");
 }
+
+function renderCalendar(){
+  let area=document.getElementById("calendarArea");
+  area.innerHTML="";
+  let year=currentDate.getFullYear();
+  let month=currentDate.getMonth();
+  document.getElementById("monthHeader").textContent=monthName(month)+" "+year;
+  let firstDay=new Date(year,month,1);
+  let startDay=firstDay.getDay(); if(startDay===0) startDay=7;
+  let daysInMonth=new Date(year,month+1,0).getDate();
+  for(let i=1;i<startDay;i++){ let e=document.createElement("div"); area.appendChild(e); }
+  for(let d=1;d<=daysInMonth;d++){
+    let div=document.createElement("div");
+    div.className="day";
+    div.textContent=d;
+    let dateStr=fmtDate(new Date(year,month,d));
+    if(currentEmp.off.includes(dateStr)) div.classList.add("off");
+    if(currentEmp.vac.includes(dateStr)) div.classList.add("vac");
+    div.onclick=()=>toggleDate(dateStr,div);
+    area.appendChild(div);
+  }
+}
+
+function fmtDate(d){ 
+  let dd=("0"+d.getDate()).slice(-2);
+  let mm=("0"+(d.getMonth()+1)).slice(-2);
+  let yyyy=d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
+function monthName(m){
+  const names=["Januar","Februar","Mart","April","Maj","Jun","Jul","Avgust","Septembar","Oktobar","Novembar","Decembar"];
+  return names[m];
+}
+
+function setMode(m){ currentMode=m; }
+
+function toggleDate(dateStr,div){
+  if(currentMode==='off'){
+    if(currentEmp.off.includes(dateStr)){
+      currentEmp.off=currentEmp.off.filter(x=>x!==dateStr);
+      div.classList.remove("off");
+    } else {
+      currentEmp.off.push(dateStr);
+      div.classList.add("off");
+    }
+  } else if(currentMode==='vac'){
+    if(currentEmp.vac.includes(dateStr)){
+      currentEmp.vac=currentEmp.vac.filter(x=>x!==dateStr);
+      div.classList.remove("vac");
+    } else {
+      currentEmp.vac.push(dateStr);
+      div.classList.add("vac");
+    }
+  }
+  saveEmployees();
+}
+
+function prevMonth(){ currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(); }
+function nextMonth(){ currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(); }
 
 function goHome(){ showScreen("home"); loadEmployees(); }
 
 function openManager(){
-  document.getElementById("report").innerHTML="<p>Izveštaj će biti u sledećoj fazi.</p>";
+  let rep="";
+  employees.sort((a,b)=>a.order-b.order);
+  employees.forEach(e=>{
+    rep+=`<div style="background:#fff;padding:10px;margin:5px;border-radius:10px;">
+      <b>${e.name}</b><br>
+      <span style="color:red;">Slobodni dani (${e.off.length}):</span> ${e.off.join(", ")||"-"}<br>
+      <span style="color:green;">Godišnji odmor (${e.vac.length}):</span> ${e.vac.join(", ")||"-"}
+    </div>`;
+  });
+  document.getElementById("report").innerHTML=rep;
   showScreen("manager");
 }
 
 function resetAll(){
-  if(confirm("Da li želiš obrisati sve?")){
+  if(confirm("Da li želiš obrisati sve podatke?")){
     employees=[];
-    for(let i=1;i<=50;i++){ employees.push({name:"Zaposleni "+i, order:i}); }
+    for(let i=1;i<=50;i++){ employees.push({name:"Zaposleni "+i, order:i, off:[], vac:[]}); }
     saveEmployees(); loadEmployees();
   }
 }
