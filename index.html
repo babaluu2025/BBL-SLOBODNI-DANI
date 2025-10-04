@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Zaposleni</title>
   <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#007bff" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,6 +16,7 @@
     }
     h1 {
       margin-bottom: 20px;
+      color: #007bff;
     }
     .grid {
       display: grid;
@@ -29,10 +31,11 @@
       background: #fff;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       cursor: pointer;
-      transition: transform 0.1s;
+      transition: transform 0.1s, background 0.2s;
     }
     button:active {
       transform: scale(0.97);
+      background: #eaeaea;
     }
     #manager {
       background: #007bff;
@@ -46,11 +49,12 @@
   </style>
 </head>
 <body>
-  <h1>Zaposleni</h1>
+  <h1>Lista zaposlenih</h1>
   <div class="grid" id="employees"></div>
   <button id="manager" onclick="window.location='manager.html'">👔 Menadžer</button>
 
   <script>
+    // Generiši 50 zaposlenih
     const container = document.getElementById('employees');
     const total = 50;
 
@@ -66,20 +70,36 @@
         window.location = `calendar.html?user=${encodeURIComponent(btn.textContent)}`;
       });
 
-      // Dugi klik menja ime
+      // Dugi dodir za promenu imena (radi i na Androidu)
       let pressTimer;
-      btn.addEventListener('mousedown', () => {
+      const startPress = () => {
         pressTimer = setTimeout(() => {
           const newName = prompt("Unesi ime zaposlenog:", btn.textContent);
-          if (newName) {
+          if (newName && newName.trim() !== "") {
             btn.textContent = newName;
             localStorage.setItem(nameKey, newName);
           }
         }, 600);
-      });
-      btn.addEventListener('mouseup', () => clearTimeout(pressTimer));
+      };
+      const cancelPress = () => clearTimeout(pressTimer);
+
+      btn.addEventListener('mousedown', startPress);
+      btn.addEventListener('mouseup', cancelPress);
+      btn.addEventListener('mouseleave', cancelPress);
+
+      // Mobilni događaji (Android)
+      btn.addEventListener('touchstart', startPress);
+      btn.addEventListener('touchend', cancelPress);
+      btn.addEventListener('touchcancel', cancelPress);
 
       container.appendChild(btn);
+    }
+
+    // Registracija service workera za PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log("✅ Service Worker registrovan"))
+        .catch(err => console.error("❌ Greška pri registraciji:", err));
     }
   </script>
 </body>
