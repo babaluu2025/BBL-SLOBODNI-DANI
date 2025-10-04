@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidencija zaposlenih</title>
+<style>
+  body { font-family: sans-serif; background:#f5f5f5; margin:0; }
+  .screen { display:none; padding:10px; }
+  .active { display:block; }
+  .btn { 
+    display:block; width:100%; margin:5px 0; padding:15px; 
+    background:#007bff; color:#fff; border:none; border-radius:10px; 
+    font-size:18px; text-align:left;
+  }
+  .btn:hover { background:#0069d9; }
+  .topbar {
+    display:flex; justify-content:space-between; align-items:center;
+    background:#007bff; color:white; padding:10px; font-size:18px;
+  }
+  #employeeList { max-height:80vh; overflow-y:auto; }
+  #calendarArea { text-align:center; margin-top:20px; }
+  .backBtn {
+    background:#ccc; border:none; border-radius:8px; padding:10px 15px;
+    margin-right:10px; font-weight:bold;
+  }
+</style>
+</head>
+<body>
+
+<!-- Glavni ekran -->
+<div id="home" class="screen active">
+  <div class="topbar">
+    <div>Evidencija zaposlenih</div>
+    <div>
+      <button class="backBtn" onclick="openManager()">Menadžer</button>
+      <button class="backBtn" onclick="resetAll()">Reset</button>
+    </div>
+  </div>
+  <div id="employeeList"></div>
+</div>
+
+<!-- Ekran kalendara -->
+<div id="calendarScreen" class="screen">
+  <div class="topbar">
+    <button class="backBtn" onclick="goHome()">&larr; Nazad</button>
+    <div id="empName"></div>
+  </div>
+  <div id="calendarArea">
+    <!-- Ovdje ćemo ubaciti kalendar -->
+    <p>Kalendar će biti ovde (Faza 2).</p>
+  </div>
+</div>
+
+<!-- Ekran menadžera -->
+<div id="manager" class="screen">
+  <div class="topbar">
+    <button class="backBtn" onclick="goHome()">&larr; Nazad</button>
+    <div>Menadžer</div>
+  </div>
+  <div id="report"></div>
+</div>
+
+<script>
+let employees = JSON.parse(localStorage.getItem("employees")||"[]");
+if(employees.length===0){
+  for(let i=1;i<=50;i++){ employees.push({name:"Zaposleni "+i, order:i}); }
+  saveEmployees();
+}
+
+function saveEmployees(){
+  localStorage.setItem("employees", JSON.stringify(employees));
+}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function loadEmployees(){
+  let list=document.getElementById("employeeList");
+  list.innerHTML="";
+  employees.sort((a,b)=>a.order-b.order);
+  employees.forEach((emp,i)=>{
+    let btn=document.createElement("button");
+    btn.className="btn";
+    btn.textContent=emp.name;
+    btn.onclick=()=>openCalendar(emp.name);
+    // duži klik za promenu imena
+    let pressTimer;
+    btn.addEventListener("touchstart", ()=>{ 
+      pressTimer=setTimeout(()=>renameEmployee(emp.name),700); 
+    });
+    btn.addEventListener("touchend", ()=>clearTimeout(pressTimer));
+    btn.addEventListener("mousedown", ()=>{ 
+      pressTimer=setTimeout(()=>renameEmployee(emp.name),700); 
+    });
+    btn.addEventListener("mouseup", ()=>clearTimeout(pressTimer));
+    list.appendChild(btn);
+  });
+}
+
+function renameEmployee(oldName){
+  let newName=prompt("Novo ime za "+oldName, oldName);
+  if(newName && newName.trim()!==""){
+    let emp=employees.find(e=>e.name===oldName);
+    emp.name=newName.trim();
+    // pomeri na vrh
+    emp.order=Math.min(...employees.map(e=>e.order))-1;
+    saveEmployees();
+    loadEmployees();
+  }
+}
+
+function openCalendar(name){
+  document.getElementById("empName").textContent=name;
+  showScreen("calendarScreen");
+}
+
+function goHome(){ showScreen("home"); loadEmployees(); }
+
+function openManager(){
+  document.getElementById("report").innerHTML="<p>Izveštaj će biti u sledećoj fazi.</p>";
+  showScreen("manager");
+}
+
+function resetAll(){
+  if(confirm("Da li želiš obrisati sve?")){
+    employees=[];
+    for(let i=1;i<=50;i++){ employees.push({name:"Zaposleni "+i, order:i}); }
+    saveEmployees(); loadEmployees();
+  }
+}
+
+loadEmployees();
+</script>
+</body>
+</html>
