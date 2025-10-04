@@ -1,106 +1,298 @@
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zaposleni</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#007bff" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalendar zaposlenih</title>
+
+  <!-- Manifest i ikone -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-512.png">
+
+  <!-- Service Worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js")
+          .then(() => console.log("✅ Service Worker registrovan"))
+          .catch(err => console.error("❌ Greška pri registraciji Service Workera:", err));
+      });
+    }
+  </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f4f4f4;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      background: #f9f9f9;
+      color: #333;
     }
-    h1 {
-      margin-bottom: 20px;
-      color: #007bff;
+
+    header {
+      background: #2563eb;
+      color: white;
+      text-align: center;
+      padding: 12px;
+      font-size: 20px;
+      font-weight: bold;
     }
-    .grid {
+
+    .container {
+      padding: 10px;
+    }
+
+    .employee-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 10px;
     }
-    button {
-      padding: 20px;
-      font-size: 16px;
-      border: none;
+
+    .employee {
+      background: white;
       border-radius: 10px;
-      background: #fff;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       cursor: pointer;
-      transition: transform 0.1s, background 0.2s;
+      transition: 0.2s;
     }
-    button:active {
-      transform: scale(0.97);
-      background: #eaeaea;
+
+    .employee:hover {
+      background: #eaf1ff;
     }
-    #manager {
-      background: #007bff;
-      color: white;
-      font-weight: bold;
-      margin-top: 20px;
-      padding: 15px;
-      border-radius: 12px;
+
+    .employee input {
+      border: none;
+      background: transparent;
+      text-align: center;
+      font-size: 16px;
       width: 100%;
+      outline: none;
     }
+
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #2563eb;
+      color: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 12px;
+      font-weight: bold;
+    }
+
+    .bottom-bar button {
+      background: white;
+      color: #2563eb;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    .bottom-bar button:hover {
+      background: #dce6ff;
+    }
+
+    .calendar-container {
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .month {
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .month h3 {
+      text-align: center;
+      margin: 10px 0;
+      background: #2563eb;
+      color: white;
+      border-radius: 8px;
+      padding: 4px;
+    }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      text-align: center;
+    }
+
+    .day {
+      padding: 5px;
+      border-radius: 5px;
+      background: #f1f1f1;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .day.free {
+      background: #34d399; /* zelena slobodni dan */
+      color: white;
+    }
+
+    .day.vacation {
+      background: #60a5fa; /* plava godisnji odmor */
+      color: white;
+    }
+
+    .day:hover {
+      background: #dce6ff;
+    }
+
   </style>
 </head>
 <body>
-  <h1>Lista zaposlenih</h1>
-  <div class="grid" id="employees"></div>
-  <button id="manager" onclick="window.location='manager.html'">👔 Menadžer</button>
+  <header>Kalendar zaposlenih</header>
+
+  <div class="container">
+    <div class="employee-list" id="employeeList"></div>
+  </div>
+
+  <div class="bottom-bar">
+    <button id="slobodniBtn">Slobodni dani</button>
+    <button id="godisnjiBtn">Godišnji odmor</button>
+    <button id="menadzerBtn">Menadžer</button>
+  </div>
 
   <script>
-    // Generiši 50 zaposlenih
-    const container = document.getElementById('employees');
+    const employees = [];
     const total = 50;
+    const employeeList = document.getElementById("employeeList");
 
     for (let i = 1; i <= total; i++) {
-      const nameKey = `employee_${i}_name`;
-      const savedName = localStorage.getItem(nameKey) || `Zaposleni ${i}`;
-
-      const btn = document.createElement('button');
-      btn.textContent = savedName;
-
-      // Klik otvara kalendar
-      btn.addEventListener('click', () => {
-        window.location = `calendar.html?user=${encodeURIComponent(btn.textContent)}`;
+      const div = document.createElement("div");
+      div.className = "employee";
+      const input = document.createElement("input");
+      input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+      input.addEventListener("change", () => {
+        localStorage.setItem("emp_" + i, input.value);
       });
-
-      // Dugi dodir za promenu imena (radi i na Androidu)
-      let pressTimer;
-      const startPress = () => {
-        pressTimer = setTimeout(() => {
-          const newName = prompt("Unesi ime zaposlenog:", btn.textContent);
-          if (newName && newName.trim() !== "") {
-            btn.textContent = newName;
-            localStorage.setItem(nameKey, newName);
-          }
-        }, 600);
-      };
-      const cancelPress = () => clearTimeout(pressTimer);
-
-      btn.addEventListener('mousedown', startPress);
-      btn.addEventListener('mouseup', cancelPress);
-      btn.addEventListener('mouseleave', cancelPress);
-
-      // Mobilni događaji (Android)
-      btn.addEventListener('touchstart', startPress);
-      btn.addEventListener('touchend', cancelPress);
-      btn.addEventListener('touchcancel', cancelPress);
-
-      container.appendChild(btn);
+      div.appendChild(input);
+      div.addEventListener("click", () => openCalendar(input.value, i));
+      employeeList.appendChild(div);
     }
 
-    // Registracija service workera za PWA
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(() => console.log("✅ Service Worker registrovan"))
-        .catch(err => console.error("❌ Greška pri registraciji:", err));
+    let currentMode = "free";
+
+    document.getElementById("slobodniBtn").addEventListener("click", () => {
+      currentMode = "free";
+      alert("Sada označavaš slobodne dane (zelena).");
+    });
+
+    document.getElementById("godisnjiBtn").addEventListener("click", () => {
+      currentMode = "vacation";
+      alert("Sada označavaš godišnji odmor (plava).");
+    });
+
+    function openCalendar(name, id) {
+      document.body.innerHTML = `<header>${name}</header>
+      <div class="calendar-container" id="calendar"></div>
+      <div class="bottom-bar">
+        <button onclick="saveAndBack()">Nazad</button>
+      </div>`;
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const saved = JSON.parse(localStorage.getItem("emp_data_" + id) || "{}");
+      const calendar = document.getElementById("calendar");
+      const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
+
+      for (let m = 0; m < 12; m++) {
+        const monthDiv = document.createElement("div");
+        monthDiv.className = "month";
+        const title = document.createElement("h3");
+        title.textContent = months[m];
+        monthDiv.appendChild(title);
+
+        const daysDiv = document.createElement("div");
+        daysDiv.className = "days";
+
+        const daysInMonth = new Date(year, m + 1, 0).getDate();
+        for (let d = 1; d <= daysInMonth; d++) {
+          const day = document.createElement("div");
+          day.className = "day";
+          day.textContent = d;
+
+          const key = `${year}-${m + 1}-${d}`;
+          if (saved[key] === "free") day.classList.add("free");
+          if (saved[key] === "vacation") day.classList.add("vacation");
+
+          day.addEventListener("click", () => {
+            if (day.classList.contains(currentMode)) {
+              day.classList.remove(currentMode);
+              delete saved[key];
+            } else {
+              day.classList.remove("free", "vacation");
+              day.classList.add(currentMode);
+              saved[key] = currentMode;
+            }
+            localStorage.setItem("emp_data_" + id, JSON.stringify(saved));
+          });
+
+          daysDiv.appendChild(day);
+        }
+
+        monthDiv.appendChild(daysDiv);
+        calendar.appendChild(monthDiv);
+      }
     }
+
+    function saveAndBack() {
+      location.reload();
+    }
+
+    document.getElementById("menadzerBtn").addEventListener("click", () => {
+      const result = [];
+      const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
+
+      for (let i = 1; i <= total; i++) {
+        const name = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+        const saved = JSON.parse(localStorage.getItem("emp_data_" + i) || "{}");
+        if (!Object.keys(saved).length) continue;
+
+        const monthlyFree = {};
+        const monthlyVacation = {};
+        for (const key in saved) {
+          const [year, m, d] = key.split("-").map(Number);
+          const monthName = months[m - 1];
+          if (saved[key] === "free") monthlyFree[monthName] = (monthlyFree[monthName] || 0) + 1;
+          if (saved[key] === "vacation") monthlyVacation[monthName] = (monthlyVacation[monthName] || 0) + 1;
+        }
+
+        let text = `<h3>${name}</h3>`;
+        if (Object.keys(monthlyFree).length) {
+          text += `<p><b>Slobodni dani:</b><br>`;
+          for (const m in monthlyFree) text += `${m}: ${monthlyFree[m]}<br>`;
+          text += `</p>`;
+        }
+        if (Object.keys(monthlyVacation).length) {
+          text += `<p><b>Godišnji odmor:</b><br>`;
+          for (const m in monthlyVacation) text += `${m}: ${monthlyVacation[m]}<br>`;
+          text += `</p>`;
+        }
+
+        result.push(text);
+      }
+
+      document.body.innerHTML = `<header>Menadžer</header>
+      <div class='container'>${result.join("<hr>")}</div>
+      <div class='bottom-bar'>
+        <button onclick='location.reload()'>Nazad</button>
+      </div>`;
+    });
   </script>
 </body>
 </html>
