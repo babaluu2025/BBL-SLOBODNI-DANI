@@ -1,157 +1,198 @@
-<script>
-let employees = JSON.parse(localStorage.getItem("employees_v2")||"[]");
-if(employees.length===0){
-  for(let i=1;i<=50;i++){ employees.push({name:"Zaposleni "+i, order:i, off:[], vac:[]}); }
-  saveEmployees();
-}
-
-let currentEmp=null;
-let currentMode='off';
-let currentDate=new Date();
-
-function saveEmployees(){ localStorage.setItem("employees_v2", JSON.stringify(employees)); }
-
-function showScreen(id){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
-
-function loadEmployees(){
-  let list=document.getElementById("employeeList");
-  list.innerHTML="";
-  employees.sort((a,b)=>a.order-b.order);
-  employees.forEach((emp)=>{
-    let btn=document.createElement("button");
-    btn.className="btn";
-    btn.textContent=emp.name;
-    btn.onclick=()=>openCalendar(emp.name);
-    // duži klik za promenu imena
-    let pressTimer;
-    btn.addEventListener("touchstart", ()=>{ pressTimer=setTimeout(()=>renameEmployee(emp.name),700); });
-    btn.addEventListener("touchend", ()=>clearTimeout(pressTimer));
-    btn.addEventListener("mousedown", ()=>{ pressTimer=setTimeout(()=>renameEmployee(emp.name),700); });
-    btn.addEventListener("mouseup", ()=>clearTimeout(pressTimer));
-    list.appendChild(btn);
-  });
-}
-
-function renameEmployee(oldName){
-  let newName=prompt("Novo ime za "+oldName, oldName);
-  if(newName && newName.trim()!==""){
-    let emp=employees.find(e=>e.name===oldName);
-    emp.name=newName.trim();
-    emp.order=Math.min(...employees.map(e=>e.order))-1;
-    saveEmployees(); loadEmployees();
-  }
-}
-
-function openCalendar(name){
-  currentEmp=employees.find(e=>e.name===name);
-  document.getElementById("empName").textContent=name;
-  renderCalendar();
-  updateModeButtons();
-  showScreen("calendarScreen");
-}
-
-function renderCalendar(){
-  let area=document.getElementById("calendarArea");
-  area.innerHTML="";
-  let year=currentDate.getFullYear();
-  let month=currentDate.getMonth();
-  document.getElementById("monthHeader").textContent=monthName(month)+" "+year;
-  let firstDay=new Date(year,month,1);
-  let startDay=firstDay.getDay(); if(startDay===0) startDay=7;
-  let daysInMonth=new Date(year,month+1,0).getDate();
-  for(let i=1;i<startDay;i++){ let e=document.createElement("div"); area.appendChild(e); }
-  for(let d=1;d<=daysInMonth;d++){
-    let div=document.createElement("div");
-    div.className="day";
-    div.textContent=d;
-    let dateStr=fmtDate(new Date(year,month,d));
-    if(currentEmp.off.includes(dateStr)) div.classList.add("off");
-    if(currentEmp.vac.includes(dateStr)) div.classList.add("vac");
-    div.onclick=()=>toggleDate(dateStr,div);
-    area.appendChild(div);
-  }
-}
-
-function fmtDate(d){ 
-  let dd=("0"+d.getDate()).slice(-2);
-  let mm=("0"+(d.getMonth()+1)).slice(-2);
-  let yyyy=d.getFullYear();
-  return `${dd}.${mm}.${yyyy}`;
-}
-
-function monthName(m){
-  const names=["Januar","Februar","Mart","April","Maj","Jun","Jul","Avgust","Septembar","Oktobar","Novembar","Decembar"];
-  return names[m];
-}
-
-function setMode(m){ 
-  currentMode=m; 
-  updateModeButtons();
-}
-
-function updateModeButtons(){
-  const offBtn=document.getElementById("offBtn");
-  const vacBtn=document.getElementById("vacBtn");
-  offBtn.style.border = currentMode==='off' ? '3px solid black' : 'none';
-  vacBtn.style.border = currentMode==='vac' ? '3px solid black' : 'none';
-  offBtn.style.opacity = currentMode==='off' ? '1' : '0.6';
-  vacBtn.style.opacity = currentMode==='vac' ? '1' : '0.6';
-}
-
-function toggleDate(dateStr,div){
-  if(currentMode==='off'){
-    if(currentEmp.off.includes(dateStr)){
-      currentEmp.off=currentEmp.off.filter(x=>x!==dateStr);
-      div.classList.remove("off");
-    } else {
-      currentEmp.off.push(dateStr);
-      div.classList.add("off");
-      currentEmp.vac=currentEmp.vac.filter(x=>x!==dateStr);
-      div.classList.remove("vac");
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Evidencija slobodnih dana</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      background-color: #f5f5f5;
     }
-  } else if(currentMode==='vac'){
-    if(currentEmp.vac.includes(dateStr)){
-      currentEmp.vac=currentEmp.vac.filter(x=>x!==dateStr);
-      div.classList.remove("vac");
-    } else {
-      currentEmp.vac.push(dateStr);
-      div.classList.add("vac");
-      currentEmp.off=currentEmp.off.filter(x=>x!==dateStr);
-      div.classList.remove("off");
+
+    .header {
+      background-color: #007bff;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-  }
-  saveEmployees();
-}
 
-function prevMonth(){ currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(); }
-function nextMonth(){ currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(); }
+    button {
+      font-size: 16px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      margin: 5px;
+      cursor: pointer;
+    }
 
-function goHome(){ showScreen("home"); loadEmployees(); }
+    .back-btn {
+      background-color: #ccc;
+    }
 
-function openManager(){
-  let rep="";
-  employees.sort((a,b)=>a.order-b.order);
-  employees.forEach(e=>{
-    rep+=`<div style="background:#fff;padding:10px;margin:5px;border-radius:10px;">
-      <b>${e.name}</b><br>
-      <span style="color:red;">Slobodni dani (${e.off.length}):</span> ${e.off.join(", ")||"-"}<br>
-      <span style="color:green;">Godišnji odmor (${e.vac.length}):</span> ${e.vac.join(", ")||"-"}
-    </div>`;
-  });
-  document.getElementById("report").innerHTML=rep;
-  showScreen("manager");
-}
+    .mode-btn {
+      font-weight: bold;
+    }
 
-function resetAll(){
-  if(confirm("Da li želiš obrisati sve podatke?")){
-    employees=[];
-    for(let i=1;i<=50;i++){ employees.push({name:"Zaposleni "+i, order:i, off:[], vac:[]}); }
-    saveEmployees(); loadEmployees();
-  }
-}
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      justify-content: center;
+      margin: 20px;
+    }
 
-loadEmployees();
-</script>
+    .day {
+      background-color: white;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 3px rgba(0,0,0,0.1);
+    }
+
+    .day.selected-free {
+      background-color: #ff7b7b;
+      color: white;
+    }
+
+    .day.selected-vacation {
+      background-color: #7bff9e;
+      color: black;
+    }
+
+    .nav-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .nav-buttons button {
+      background-color: #007bff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="back-btn" onclick="goBack()">← Nazad</button>
+    <div id="employeeName">Zaposleni</div>
+  </div>
+
+  <div>
+    <button id="freeBtn" class="mode-btn" style="background-color:#ff7b7b;">Slobodni dan</button>
+    <button id="vacationBtn" class="mode-btn" style="background-color:#7bff9e;">Godišnji odmor</button>
+  </div>
+
+  <h2 id="monthYear"></h2>
+  <div class="calendar" id="calendar"></div>
+
+  <div class="nav-buttons">
+    <button onclick="prevMonth()">← Prethodni</button>
+    <button onclick="nextMonth()">Sledeći →</button>
+  </div>
+
+  <script>
+    const employeeName = localStorage.getItem("selectedEmployee") || "zaposleni";
+    document.getElementById("employeeName").textContent = employeeName;
+
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let mode = "free"; // 'free' = slobodni, 'vacation' = godišnji
+
+    const freeDays = JSON.parse(localStorage.getItem(employeeName + "_freeDays") || "{}");
+    const vacationDays = JSON.parse(localStorage.getItem(employeeName + "_vacationDays") || "{}");
+
+    const calendarEl = document.getElementById("calendar");
+    const monthYearEl = document.getElementById("monthYear");
+
+    document.getElementById("freeBtn").addEventListener("click", () => {
+      mode = "free";
+      renderCalendar();
+    });
+
+    document.getElementById("vacationBtn").addEventListener("click", () => {
+      mode = "vacation";
+      renderCalendar();
+    });
+
+    function renderCalendar() {
+      calendarEl.innerHTML = "";
+      const monthNames = ["Januar","Februar","Mart","April","Maj","Jun","Jul","Avgust","Septembar","Oktobar","Novembar","Decembar"];
+      monthYearEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+      const storage = mode === "free" ? freeDays : vacationDays;
+      const storageKey = currentYear + "-" + currentMonth;
+
+      for (let i = 0; i < firstDay; i++) {
+        const emptyDiv = document.createElement("div");
+        calendarEl.appendChild(emptyDiv);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const div = document.createElement("div");
+        div.className = "day";
+        div.textContent = day;
+
+        const selected = storage[storageKey]?.includes(day);
+        if (selected) {
+          div.classList.add(mode === "free" ? "selected-free" : "selected-vacation");
+        }
+
+        div.addEventListener("click", () => toggleDay(day));
+        calendarEl.appendChild(div);
+      }
+    }
+
+    function toggleDay(day) {
+      const storage = mode === "free" ? freeDays : vacationDays;
+      const key = currentYear + "-" + currentMonth;
+
+      if (!storage[key]) storage[key] = [];
+
+      const index = storage[key].indexOf(day);
+      if (index > -1) {
+        storage[key].splice(index, 1);
+      } else {
+        storage[key].push(day);
+      }
+
+      const keyName = mode === "free" ? "_freeDays" : "_vacationDays";
+      localStorage.setItem(employeeName + keyName, JSON.stringify(storage));
+      renderCalendar();
+    }
+
+    function prevMonth() {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+      renderCalendar();
+    }
+
+    function goBack() {
+      window.location.href = "zaposleni.html"; // kasnije lista zaposlenih
+    }
+
+    renderCalendar();
+  </script>
+</body>
+</html>
