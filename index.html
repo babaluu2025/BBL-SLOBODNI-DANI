@@ -321,19 +321,35 @@
   </script>
   
 <!-- 🔐 Google Drive login i sinhronizacija -->
+<div id="googleSyncContainer" style="
+  position: fixed;
+  top: 70px;  /* pomereno ispod plave trake */
+  right: 10px;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+">
+  <button id="loginBtn" onclick="handleAuthClick()" 
+    style="background:#4285F4;color:white;border:none;border-radius:8px;
+    padding:10px 16px;font-weight:bold;cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,0.3);display:none;">
+    🔑 Prijava na Google
+  </button>
+</div>
+
 <script>
-  const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com"; // tvoj ID
+  const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com"; 
   const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
-  // Prikaži dugme odmah da ne nestane na Androidu
   window.addEventListener("load", () => {
-    document.getElementById("loginBtn").style.display = "flex";
+    const btn = document.getElementById("loginBtn");
+    if (btn) btn.style.display = "flex";
   });
 
   function handleAuthClick() {
-    // Ako gapi nije spreman, obavesti korisnika
     if (typeof gapi === "undefined" || !gapi.auth2) {
-      alert("⏳ Google servisi se još učitavaju... pokušaj ponovo za par sekundi.");
+      alert("⏳ Google servisi se učitavaju... pokušaj ponovo za par sekundi.");
       return;
     }
 
@@ -353,10 +369,7 @@
 
     const fileContent = JSON.stringify(allData, null, 2);
     const blob = new Blob([fileContent], { type: "application/json" });
-    const metadata = {
-      name: "kalendar_zaposlenih.json",
-      mimeType: "application/json",
-    };
+    const metadata = { name: "kalendar_zaposlenih.json", mimeType: "application/json" };
 
     const accessToken = gapi.auth.getToken()?.access_token;
     if (!accessToken) {
@@ -380,15 +393,15 @@
 
   function initGapi() {
     gapi.load("client:auth2", () => {
-      gapi.client
-        .init({
-          clientId: CLIENT_ID,
-          scope: SCOPES,
-          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
-        })
-        .then(() => console.log("✅ GAPI inicijalizovan"))
-        .catch(err => console.error("❌ GAPI error:", err));
+      gapi.client.init({
+        clientId: CLIENT_ID,
+        scope: SCOPES,
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+      })
+      .then(() => console.log("✅ GAPI inicijalizovan"))
+      .catch(err => console.error("❌ GAPI error:", err));
     });
   }
 </script>
+
 <script async defer src="https://apis.google.com/js/api.js" onload="initGapi()"></script>
