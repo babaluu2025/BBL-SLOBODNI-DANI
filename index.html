@@ -1,162 +1,49 @@
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kalendar zaposlenih</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kalendar zaposlenih (sa Drive sync)</title>
 
-  <!-- Manifest i ikone -->
+  <!-- Google libs -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-  <link rel="apple-touch-icon" href="icon-512.png">
-
-  <!-- Service Worker -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("service-worker.js")
-          .then(() => console.log("✅ Service Worker registrovan"))
-          .catch(err => console.error("❌ Greška pri registraciji Service Workera:", err));
-      });
-    }
-  </script>
-
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding-bottom: 80px; /* prostor da se vidi i zadnji zaposleni */
-      background: #f9f9f9;
-      color: #333;
-      box-sizing: border-box;
-    }
-
-    header {
-      background: #2563eb;
-      color: white;
-      text-align: center;
-      padding: 12px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-
-    .container {
-      padding: 10px;
-    }
-
-    .employee-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-    }
-
-    .employee {
-      background: white;
-      border-radius: 10px;
-      padding: 12px;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .employee:hover {
-      background: #eaf1ff;
-    }
-
-    .employee input {
-      border: none;
-      background: transparent;
-      text-align: center;
-      font-size: 16px;
-      width: 100%;
-      outline: none;
-    }
-
-    .bottom-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #2563eb;
-      color: white;
-      display: flex;
-      justify-content: space-around;
-      padding: 12px;
-      font-weight: bold;
-      z-index: 1000;
-    }
-
-    .bottom-bar button {
-      background: white;
-      color: #2563eb;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 16px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: 0.2s;
-    }
-
-    .bottom-bar button:hover {
-      background: #dce6ff;
-    }
-
-    .calendar-container {
-      padding: 10px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 20px;
-    }
-
-    .month {
-      background: white;
-      border-radius: 10px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    .month h3 {
-      text-align: center;
-      margin: 10px 0;
-      background: #2563eb;
-      color: white;
-      border-radius: 8px;
-      padding: 4px;
-    }
-
-    .days {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-      text-align: center;
-    }
-
-    .day {
-      padding: 5px;
-      border-radius: 5px;
-      background: #f1f1f1;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .day.free {
-      background: #34d399; /* zelena slobodni dan */
-      color: white;
-    }
-
-    .day.vacation {
-      background: #60a5fa; /* plava godisnji odmor */
-      color: white;
-    }
-
-    .day:hover {
-      background: #dce6ff;
-    }
+    /* (stari stilovi koji si koristio) */
+    body { font-family: Arial, sans-serif; margin: 0; background:#f9f9f9; color:#333; box-sizing:border-box; height:100vh; display:flex; flex-direction:column; }
+    header { background:#2563eb; color:white; text-align:center; padding:12px; font-size:20px; font-weight:bold; flex-shrink:0; }
+    .container { flex-grow:1; overflow-y:auto; padding:10px; }
+    .employee-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+    .employee { background:white; border-radius:10px; padding:12px; text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; transition:0.2s; }
+    .employee:hover { background:#eaf1ff; }
+    .bottom-bar { background:#2563eb; display:flex; justify-content:space-around; padding:12px; font-weight:bold; flex-shrink:0; }
+    .bottom-bar button { background:white; color:#2563eb; border:none; border-radius:8px; padding:10px 16px; cursor:pointer; font-weight:bold; transition:0.2s; }
+    .bottom-bar button:hover { background:#dce6ff; }
+    .calendar-container { padding:10px; display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; }
+    .month { background:white; border-radius:10px; padding:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+    .month h3 { text-align:center; margin:10px 0; background:#2563eb; color:white; border-radius:8px; padding:4px; }
+    .days { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; text-align:center; }
+    .day { padding:5px; border-radius:5px; background:#f1f1f1; cursor:pointer; transition:0.2s; }
+    .day.free { background:#34d399; color:white; }
+    .day.vacation { background:#60a5fa; color:white; }
+    .day:hover { background:#dce6ff; }
+    .top-right { position: absolute; right:10px; top:12px; }
+    .status { font-size:13px; color:#fff; padding:6px 8px; border-radius:6px; background:rgba(0,0,0,0.2); margin-left:8px; }
   </style>
 </head>
 <body>
-  <header>Kalendar zaposlenih</header>
+  <header>
+    Kalendar zaposlenih
+    <span class="top-right">
+      <span id="userEmail" style="color:white;margin-right:8px;"></span>
+      <button id="signinBtn" style="display:inline-block;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;">Sign in</button>
+      <button id="signoutBtn" style="display:none;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;">Sign out</button>
+      <button id="syncBtn" style="display:inline-block;padding:6px 10px;border-radius:6px;border:none;cursor:pointer;">Sync Now</button>
+      <span id="syncStatus" class="status" style="display:none">...</span>
+    </span>
+  </header>
 
   <div class="container">
     <div class="employee-list" id="employeeList"></div>
@@ -168,132 +55,319 @@
     <button id="menadzerBtn">Menadžer</button>
   </div>
 
-  <script>
-    const employees = [];
-    const total = 50;
-    const employeeList = document.getElementById("employeeList");
+<script>
+/* ---------- ZAMENI OVO SA SVOJIM KLIJENT PODACIMA ---------- */
+const CLIENT_ID = "YOUR_CLIENT_ID_HERE.apps.googleusercontent.com";
+const API_KEY   = "YOUR_API_KEY_HERE";
+const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+const SCOPES = 'https://www.googleapis.com/auth/drive.file'; // access only to files created/used by app
+const DRIVE_FILENAME = 'kalendar_zaposlenih.json';
+/* ----------------------------------------------------------- */
 
-    for (let i = 1; i <= total; i++) {
-      const div = document.createElement("div");
-      div.className = "employee";
-      const input = document.createElement("input");
-      input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-      input.addEventListener("change", () => {
-        localStorage.setItem("emp_" + i, input.value);
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+let accessToken = null;
+let currentMode = 'free';
+const total = 50;
+
+/* ---------- LOCAL: tvoja postojeća logika nalazi se ovde ---------- */
+const employeeList = document.getElementById("employeeList");
+
+// load employees (inputs) - exactly like pre
+function renderEmployeeList() {
+  employeeList.innerHTML = "";
+  for (let i = 1; i <= total; i++) {
+    const div = document.createElement("div");
+    div.className = "employee";
+    const input = document.createElement("input");
+    input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+    input.addEventListener("change", () => localStorage.setItem("emp_" + i, input.value));
+    div.appendChild(input);
+    div.addEventListener("click", () => openCalendar(input.value, i));
+    // long-press change name (optional)
+    let pressTimer;
+    div.addEventListener("mousedown", () => { pressTimer = setTimeout(()=>{ const newName = prompt('Novo ime:', input.value); if(newName){ input.value=newName; localStorage.setItem('emp_'+i,newName);} },700); });
+    div.addEventListener("mouseup", ()=>clearTimeout(pressTimer));
+    div.addEventListener("mouseleave", ()=>clearTimeout(pressTimer));
+    div.addEventListener("touchstart", ()=>{ pressTimer = setTimeout(()=>{ const newName = prompt('Novo ime:', input.value); if(newName){ input.value=newName; localStorage.setItem('emp_'+i,newName);} },700); });
+    div.addEventListener("touchend", ()=>clearTimeout(pressTimer));
+    employeeList.appendChild(div);
+  }
+}
+
+/* calendar open (keeps same behaviour as ti imaš) */
+function openCalendar(name, id) {
+  document.body.innerHTML = `<header>${name}</header>
+    <div class="calendar-container" id="calendar"></div>
+    <div class="bottom-bar"><button onclick="saveAndBack()">Nazad</button></div>`;
+  const now = new Date();
+  const year = now.getFullYear();
+  const saved = JSON.parse(localStorage.getItem("emp_data_" + id) || "{}");
+  const calendar = document.getElementById("calendar");
+  const months = ["Januar","Februar","Mart","April","Maj","Jun","Jul","Avgust","Septembar","Oktobar","Novembar","Decembar"];
+  for (let m = 0; m < 12; m++) {
+    const monthDiv = document.createElement("div");
+    monthDiv.className = "month";
+    const title = document.createElement("h3"); title.textContent = months[m] + " " + year; monthDiv.appendChild(title);
+    const daysDiv = document.createElement("div"); daysDiv.className = "days";
+    const daysInMonth = new Date(year, m + 1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const day = document.createElement("div");
+      day.className = "day";
+      day.textContent = d;
+      const key = `${year}-${m+1}-${d}`;
+      if (saved[key] === "free") day.classList.add("free");
+      if (saved[key] === "vacation") day.classList.add("vacation");
+      day.addEventListener("click", () => {
+        if (day.classList.contains(currentMode)) { day.classList.remove(currentMode); delete saved[key]; }
+        else { day.classList.remove("free","vacation"); day.classList.add(currentMode); saved[key]=currentMode; }
+        localStorage.setItem("emp_data_"+id, JSON.stringify(saved));
       });
-      div.appendChild(input);
-      div.addEventListener("click", () => openCalendar(input.value, i));
-      employeeList.appendChild(div);
+      daysDiv.appendChild(day);
     }
+    monthDiv.appendChild(daysDiv);
+    calendar.appendChild(monthDiv);
+  }
+}
 
-    let currentMode = "free";
+/* save & back */
+function saveAndBack(){ location.reload(); }
 
-    document.getElementById("slobodniBtn").addEventListener("click", () => {
-      currentMode = "free";
-      alert("Sada označavaš slobodne dane (zelena).");
-    });
+/* menadzer */
+document.getElementById("menadzerBtn").addEventListener("click", () => {
+  const result = [];
+  const months = ["Januar","Februar","Mart","April","Maj","Jun","Jul","Avgust","Septembar","Oktobar","Novembar","Decembar"];
+  for (let i=1;i<=total;i++){
+    const name = localStorage.getItem("emp_"+i) || "Zaposleni "+i;
+    const saved = JSON.parse(localStorage.getItem("emp_data_"+i) || "{}");
+    if (!Object.keys(saved).length) continue;
+    const monthlyFree = {}; const monthlyVacation = {};
+    for (const key in saved) {
+      const [y,m,d] = key.split("-").map(Number);
+      const monthName = months[m-1];
+      if (saved[key] === "free") monthlyFree[monthName] = (monthlyFree[monthName]||0)+1;
+      if (saved[key] === "vacation") monthlyVacation[monthName] = (monthlyVacation[monthName]||0)+1;
+    }
+    let text = `<h3>${name}</h3>`;
+    if (Object.keys(monthlyFree).length){ text += `<p><b>Slobodni dani:</b><br>`; for (const m in monthlyFree) text += `${m}: ${monthlyFree[m]}<br>`; text += `</p>`; }
+    if (Object.keys(monthlyVacation).length){ text += `<p><b>Godišnji odmor:</b><br>`; for (const m in monthlyVacation) text += `${m}: ${monthlyVacation[m]}<br>`; text += `</p>`; }
+    result.push(text);
+  }
+  document.body.innerHTML = `<header>Menadžer</header><div class='container'>${result.join("<hr>")}</div><div class='bottom-bar'><button onclick='location.reload()'>Nazad</button></div>`;
+});
 
-    document.getElementById("godisnjiBtn").addEventListener("click", () => {
-      currentMode = "vacation";
-      alert("Sada označavaš godišnji odmor (plava).");
-    });
+/* mode buttons */
+document.getElementById("slobodniBtn").addEventListener("click", ()=>{ currentMode='free'; alert('Sada označavaš slobodne dane (zelena).'); });
+document.getElementById("godisnjiBtn").addEventListener("click", ()=>{ currentMode='vacation'; alert('Sada označavaš godišnji odmor (plava).'); });
 
-    function openCalendar(name, id) {
-      document.body.innerHTML = `<header>${name}</header>
-      <div class="calendar-container" id="calendar"></div>
-      <div class="bottom-bar">
-        <button onclick="saveAndBack()">Nazad</button>
-      </div>`;
+/* ---------- END local app logic ---------- */
 
-      const now = new Date();
-      const year = now.getFullYear();
-      const saved = JSON.parse(localStorage.getItem("emp_data_" + id) || "{}");
-      const calendar = document.getElementById("calendar");
-      const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
+/* ---------- Google Drive sync logic below ---------- */
 
-      for (let m = 0; m < 12; m++) {
-        const monthDiv = document.createElement("div");
-        monthDiv.className = "month";
-        const title = document.createElement("h3");
-        title.textContent = months[m];
-        monthDiv.appendChild(title);
+function gapiLoadCallback() {
+  gapi.load('client', async () => {
+    await gapi.client.init({ apiKey: API_KEY, discoveryDocs: DISCOVERY_DOCS });
+    gapiInited = true;
+    console.log('gapi inited');
+  });
+}
 
-        const daysDiv = document.createElement("div");
-        daysDiv.className = "days";
-
-        const daysInMonth = new Date(year, m + 1, 0).getDate();
-        for (let d = 1; d <= daysInMonth; d++) {
-          const day = document.createElement("div");
-          day.className = "day";
-          day.textContent = d;
-
-          const key = `${year}-${m + 1}-${d}`;
-          if (saved[key] === "free") day.classList.add("free");
-          if (saved[key] === "vacation") day.classList.add("vacation");
-
-          day.addEventListener("click", () => {
-            if (day.classList.contains(currentMode)) {
-              day.classList.remove(currentMode);
-              delete saved[key];
-            } else {
-              day.classList.remove("free", "vacation");
-              day.classList.add(currentMode);
-              saved[key] = currentMode;
-            }
-            localStorage.setItem("emp_data_" + id, JSON.stringify(saved));
-          });
-
-          daysDiv.appendChild(day);
-        }
-
-        monthDiv.appendChild(daysDiv);
-        calendar.appendChild(monthDiv);
+function gisInit() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) {
+        console.error('Token error', resp);
+        return;
       }
+      accessToken = resp.access_token;
+      gapi.client.setToken({ access_token: accessToken });
+      // after sign-in fetch remote file if exists
+      fetchRemoteAndMerge();
+      updateUIAuth(true);
     }
+  });
+  gisInited = true;
+}
 
-    function saveAndBack() {
+function initializeGoogle() {
+  // load gapi
+  gapiLoadCallback();
+  gisInit();
+}
+
+// call on load
+window.addEventListener('load', () => {
+  renderEmployeeList();
+  initializeGoogle();
+});
+
+// Sign-in button
+document.getElementById('signinBtn').addEventListener('click', () => {
+  // Request an access token; prompt if needed
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+});
+
+// Sign-out
+document.getElementById('signoutBtn').addEventListener('click', async () => {
+  // revoke token
+  if (accessToken) {
+    await fetch(`https://oauth2.googleapis.com/revoke?token=${accessToken}`, { method: 'POST' });
+    accessToken = null;
+    gapi.client.setToken(null);
+    updateUIAuth(false);
+    document.getElementById('userEmail').textContent = '';
+  }
+});
+
+// Sync Now button
+document.getElementById('syncBtn').addEventListener('click', async () => {
+  if (!accessToken) {
+    alert('Niste prijavljeni. Prvo se prijavite na Google.');
+    return;
+  }
+  await syncLocalToDrive();
+});
+
+/* utility: show auth state */
+function updateUIAuth(signedIn) {
+  document.getElementById('signinBtn').style.display = signedIn ? 'none' : 'inline-block';
+  document.getElementById('signoutBtn').style.display = signedIn ? 'inline-block' : 'none';
+  document.getElementById('syncStatus').style.display = signedIn ? 'inline-block' : 'none';
+  document.getElementById('syncStatus').textContent = signedIn ? 'Prijavljen' : '';
+}
+
+/* prepare JSON payload from localStorage */
+function collectAllData() {
+  // collect employee names and employee calendar data
+  const payload = { meta: { version: 1, updated: new Date().toISOString() }, employees: {}, data: {} };
+  for (let i=1;i<=total;i++){
+    payload.employees['emp_'+i] = localStorage.getItem('emp_'+i) || `Zaposleni ${i}`;
+    payload.data['emp_data_'+i] = JSON.parse(localStorage.getItem('emp_data_'+i) || '{}');
+  }
+  return payload;
+}
+
+/* find file by name on Drive */
+async function findFileByName(name) {
+  const res = await gapi.client.drive.files.list({ q: `name='${name}' and trashed=false`, fields: 'files(id,name,modifiedTime)', pageSize: 10 });
+  return (res.result.files && res.result.files.length) ? res.result.files[0] : null;
+}
+
+/* fetch remote, merge or overwrite local - here we will simply overwrite local with remote (sa prompt) */
+async function fetchRemoteAndMerge() {
+  try {
+    const file = await findFileByName(DRIVE_FILENAME);
+    if (!file) {
+      console.log('Nema fajla na Drive-u.');
+      return;
+    }
+    const resp = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
+    const remote = resp.result;
+    // remote is object; merge policy: ask user? we'll do a simple prompt to overwrite local
+    if (confirm('Pronađen fajl na Drive-u. Želite li povući podatke sa Drive-a i zameniti lokalne podatke? (Cancel = odbaci)')) {
+      // replace local
+      if (remote.employees) {
+        for (let i=1;i<=total;i++){ localStorage.setItem('emp_'+i, remote.employees['emp_'+i] || `Zaposleni ${i}`); }
+      }
+      if (remote.data) {
+        for (let i=1;i<=total;i++){ localStorage.setItem('emp_data_'+i, JSON.stringify(remote.data['emp_data_'+i]||{})); }
+      }
+      alert('Podaci preuzeti sa Drive-a. Aplikacija će se osvežiti.');
       location.reload();
     }
+  } catch (err) {
+    console.error('fetchRemoteAndMerge error', err);
+  }
+}
 
-    document.getElementById("menadzerBtn").addEventListener("click", () => {
-      const result = [];
-      const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
+/* upload (create or update) JSON to Drive */
+async function syncLocalToDrive() {
+  try {
+    document.getElementById('syncStatus').textContent = 'Sinhronizacija...';
+    const payload = collectAllData();
+    const file = await findFileByName(DRIVE_FILENAME);
+    if (file) {
+      // update
+      await gapi.client.drive.files.update({
+        fileId: file.id,
+        media: { mimeType: 'application/json', body: JSON.stringify(payload) }
+      });
+      document.getElementById('syncStatus').textContent = 'Sinhronizovano (update)';
+    } else {
+      // create
+      await gapi.client.drive.files.create({
+        resource: { name: DRIVE_FILENAME, mimeType: 'application/json' },
+        media: { mimeType: 'application/json', body: JSON.stringify(payload) }
+      });
+      document.getElementById('syncStatus').textContent = 'Sinhronizovano (created)';
+    }
+    // clear queued if any
+    localStorage.removeItem('drive_sync_queue');
+  } catch (err) {
+    console.error('syncLocalToDrive error', err);
+    document.getElementById('syncStatus').textContent = 'Greška pri sync';
+    // queue for later
+    queueSyncLocally();
+  }
+}
 
-      for (let i = 1; i <= total; i++) {
-        const name = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-        const saved = JSON.parse(localStorage.getItem("emp_data_" + i) || "{}");
-        if (!Object.keys(saved).length) continue;
+/* if offline, queue full payload in localStorage for later */
+function queueSyncLocally() {
+  const payload = collectAllData();
+  localStorage.setItem('drive_sync_queue', JSON.stringify({ ts: Date.now(), payload }));
+}
 
-        const monthlyFree = {};
-        const monthlyVacation = {};
-        for (const key in saved) {
-          const [year, m, d] = key.split("-").map(Number);
-          const monthName = months[m - 1];
-          if (saved[key] === "free") monthlyFree[monthName] = (monthlyFree[monthName] || 0) + 1;
-          if (saved[key] === "vacation") monthlyVacation[monthName] = (monthlyVacation[monthName] || 0) + 1;
-        }
+/* flush queue when possible */
+async function flushQueueIfAny() {
+  const queued = localStorage.getItem('drive_sync_queue');
+  if (!queued) return;
+  if (!accessToken) return;
+  if (!navigator.onLine) return;
+  try {
+    document.getElementById('syncStatus').textContent = 'Sinhronizacija iz reda...';
+    const q = JSON.parse(queued);
+    // same upload logic: find file then update/create
+    const payload = q.payload;
+    const file = await findFileByName(DRIVE_FILENAME);
+    if (file) {
+      await gapi.client.drive.files.update({ fileId: file.id, media: { mimeType: 'application/json', body: JSON.stringify(payload) }});
+    } else {
+      await gapi.client.drive.files.create({ resource: { name: DRIVE_FILENAME, mimeType: 'application/json' }, media: { mimeType: 'application/json', body: JSON.stringify(payload) }});
+    }
+    localStorage.removeItem('drive_sync_queue');
+    document.getElementById('syncStatus').textContent = 'Red sinhronizovan';
+  } catch (e) {
+    console.error('flushQueue error', e);
+  }
+}
 
-        let text = `<h3>${name}</h3>`;
-        if (Object.keys(monthlyFree).length) {
-          text += `<p><b>Slobodni dani:</b><br>`;
-          for (const m in monthlyFree) text += `${m}: ${monthlyFree[m]}<br>`;
-          text += `</p>`;
-        }
-        if (Object.keys(monthlyVacation).length) {
-          text += `<p><b>Godišnji odmor:</b><br>`;
-          for (const m in monthlyVacation) text += `${m}: ${monthlyVacation[m]}<br>`;
-          text += `</p>`;
-        }
+/* attempt sync on unload */
+window.addEventListener('beforeunload', async (e) => {
+  if (accessToken && navigator.onLine) {
+    try { await syncLocalToDrive(); } catch(_) { queueSyncLocally(); }
+  } else {
+    queueSyncLocally();
+  }
+});
 
-        result.push(text);
-      }
+/* network online listener - try flush queue */
+window.addEventListener('online', () => { if (accessToken) flushQueueIfAny(); });
 
-      document.body.innerHTML = `<header>Menadžer</header>
-      <div class='container'>${result.join("<hr>")}</div>
-      <div class='bottom-bar'>
-        <button onclick='location.reload()'>Nazad</button>
-      </div>`;
-    });
-  </script>
+/* load gapi and set up */
+function loadGapiAndInit() {
+  const script = document.createElement('script');
+  script.src = "https://apis.google.com/js/api.js";
+  script.onload = () => { gapiLoadCallback(); };
+  document.head.appendChild(script);
+}
+loadGapiAndInit();
+
+/* small helper to auto-login: if user already has token cached in browser, you can call tokenClient.requestAccessToken({prompt:''}) but Google may require consent every time depending on settings. We'll keep manual flow. */
+
+/* END of Drive logic */
+</script>
 </body>
 </html>
