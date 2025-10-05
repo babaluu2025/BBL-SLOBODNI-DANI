@@ -1,307 +1,299 @@
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalendar zaposlenih</title>
-  <link rel="manifest" href="manifest.json" />
+
+  <!-- Manifest i ikone -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-512.png">
+
+  <!-- Service Worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js")
+          .then(() => console.log("✅ Service Worker registrovan"))
+          .catch(err => console.error("❌ Greška pri registraciji Service Workera:", err));
+      });
+    }
+  </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
-      background: #f5f5f5;
-      overflow-x: hidden;
+      padding-bottom: 80px; /* prostor da se vidi i zadnji zaposleni */
+      background: #f9f9f9;
+      color: #333;
+      box-sizing: border-box;
     }
 
     header {
-      background-color: #1976d2;
+      background: #2563eb;
       color: white;
       text-align: center;
-      padding: 10px;
+      padding: 12px;
       font-size: 20px;
+      font-weight: bold;
     }
 
-    /* Glavni deo sada ima padding ispod trake */
-    #main {
-      padding-bottom: 80px;
-      overflow-y: auto;
+    .container {
+      padding: 10px;
     }
 
-    .employee-grid {
+    .employee-list {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 10px;
-      padding: 15px;
     }
 
     .employee {
       background: white;
       border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      padding: 15px;
+      padding: 12px;
       text-align: center;
-      font-weight: bold;
-      user-select: none;
-      transition: 0.2s;
-    }
-
-    .employee:active {
-      background-color: #e0e0e0;
-    }
-
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-      padding: 10px;
-    }
-
-    .day {
-      background: white;
-      text-align: center;
-      padding: 10px;
-      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       cursor: pointer;
-      font-size: 14px;
       transition: 0.2s;
     }
 
-    .day:hover {
-      background-color: #dfe6fd;
+    .employee:hover {
+      background: #eaf1ff;
     }
 
-    .free-day {
-      background-color: #a5d6a7 !important;
+    .employee input {
+      border: none;
+      background: transparent;
+      text-align: center;
+      font-size: 16px;
+      width: 100%;
+      outline: none;
     }
 
-    .vacation-day {
-      background-color: #90caf9 !important;
-    }
-
-    .bottom-nav {
+    .bottom-bar {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      background-color: #1976d2;
+      background: #2563eb;
+      color: white;
       display: flex;
       justify-content: space-around;
       padding: 12px;
-      z-index: 100;
+      font-weight: bold;
+      z-index: 1000;
     }
 
-    .bottom-nav button {
-      background-color: white;
-      color: #1976d2;
+    .bottom-bar button {
+      background: white;
+      color: #2563eb;
       border: none;
       border-radius: 8px;
-      padding: 10px 15px;
-      font-size: 15px;
-      font-weight: bold;
+      padding: 10px 16px;
       cursor: pointer;
-      flex: 1;
-      margin: 0 5px;
+      font-weight: bold;
       transition: 0.2s;
     }
 
-    .bottom-nav button:active {
-      background-color: #bbdefb;
+    .bottom-bar button:hover {
+      background: #dce6ff;
     }
 
-    .manager-view {
-      padding: 15px;
-      padding-bottom: 100px; /* prostor za traku */
-      background: #fafafa;
-    }
-
-    .employee-report {
-      background: white;
-      border-radius: 8px;
+    .calendar-container {
       padding: 10px;
-      margin-bottom: 15px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
     }
 
-    h2 {
-      margin: 0 0 5px 0;
-      color: #333;
+    .month {
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    .section-title {
-      font-weight: bold;
-      margin-top: 8px;
-      color: #555;
-    }
-
-    .back-btn {
-      display: block;
-      margin: 20px auto 80px auto;
-      padding: 10px 20px;
-      background: #1976d2;
+    .month h3 {
+      text-align: center;
+      margin: 10px 0;
+      background: #2563eb;
       color: white;
-      border: none;
       border-radius: 8px;
-      font-weight: bold;
-      font-size: 16px;
+      padding: 4px;
+    }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      text-align: center;
+    }
+
+    .day {
+      padding: 5px;
+      border-radius: 5px;
+      background: #f1f1f1;
       cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .day.free {
+      background: #34d399; /* zelena slobodni dan */
+      color: white;
+    }
+
+    .day.vacation {
+      background: #60a5fa; /* plava godisnji odmor */
+      color: white;
+    }
+
+    .day:hover {
+      background: #dce6ff;
     }
   </style>
 </head>
 <body>
   <header>Kalendar zaposlenih</header>
 
-  <div id="main"></div>
+  <div class="container">
+    <div class="employee-list" id="employeeList"></div>
+  </div>
 
-  <div class="bottom-nav">
-    <button id="freeDaysBtn">Slobodni dani</button>
-    <button id="vacationBtn">Godišnji odmor</button>
-    <button id="managerBtn">Menadžer</button>
+  <div class="bottom-bar">
+    <button id="slobodniBtn">Slobodni dani</button>
+    <button id="godisnjiBtn">Godišnji odmor</button>
+    <button id="menadzerBtn">Menadžer</button>
   </div>
 
   <script>
-    const main = document.getElementById("main");
-    let mode = null;
-    let selectedEmployee = null;
-    let employees = Array.from({ length: 50 }, (_, i) => ({
-      name: `Zaposleni ${i + 1}`,
-      freeDays: [],
-      vacations: []
-    }));
+    const employees = [];
+    const total = 50;
+    const employeeList = document.getElementById("employeeList");
 
-    if (localStorage.getItem("employees")) {
-      employees = JSON.parse(localStorage.getItem("employees"));
-    }
-
-    function saveData() {
-      localStorage.setItem("employees", JSON.stringify(employees));
-    }
-
-    function renderHome() {
-      main.innerHTML = "";
-      const grid = document.createElement("div");
-      grid.className = "employee-grid";
-
-      employees.forEach((emp, index) => {
-        const div = document.createElement("div");
-        div.className = "employee";
-        div.textContent = emp.name;
-
-        div.addEventListener("click", () => openCalendar(index));
-
-        let pressTimer;
-        div.addEventListener("mousedown", () => {
-          pressTimer = setTimeout(() => renameEmployee(index), 800);
-        });
-        div.addEventListener("mouseup", () => clearTimeout(pressTimer));
-        div.addEventListener("touchstart", () => {
-          pressTimer = setTimeout(() => renameEmployee(index), 800);
-        });
-        div.addEventListener("touchend", () => clearTimeout(pressTimer));
-
-        grid.appendChild(div);
+    for (let i = 1; i <= total; i++) {
+      const div = document.createElement("div");
+      div.className = "employee";
+      const input = document.createElement("input");
+      input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+      input.addEventListener("change", () => {
+        localStorage.setItem("emp_" + i, input.value);
       });
-
-      main.appendChild(grid);
+      div.appendChild(input);
+      div.addEventListener("click", () => openCalendar(input.value, i));
+      employeeList.appendChild(div);
     }
 
-    function renameEmployee(index) {
-      const newName = prompt("Unesi novo ime zaposlenog:", employees[index].name);
-      if (newName && newName.trim() !== "") {
-        employees[index].name = newName.trim();
-        saveData();
-        renderHome();
-      }
-    }
+    let currentMode = "free";
 
-    function openCalendar(index) {
-      selectedEmployee = index;
-      renderCalendar(index);
-    }
+    document.getElementById("slobodniBtn").addEventListener("click", () => {
+      currentMode = "free";
+      alert("Sada označavaš slobodne dane (zelena).");
+    });
 
-    function renderCalendar(index) {
-      const emp = employees[index];
-      main.innerHTML = `<h2 style="text-align:center;margin:10px;">${emp.name}</h2>`;
-      const cal = document.createElement("div");
-      cal.className = "calendar";
+    document.getElementById("godisnjiBtn").addEventListener("click", () => {
+      currentMode = "vacation";
+      alert("Sada označavaš godišnji odmor (plava).");
+    });
+
+    function openCalendar(name, id) {
+      document.body.innerHTML = `<header>${name}</header>
+      <div class="calendar-container" id="calendar"></div>
+      <div class="bottom-bar">
+        <button onclick="saveAndBack()">Nazad</button>
+      </div>`;
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const saved = JSON.parse(localStorage.getItem("emp_data_" + id) || "{}");
+      const calendar = document.getElementById("calendar");
+      const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
 
       for (let m = 0; m < 12; m++) {
-        for (let d = 1; d <= 31; d++) {
-          const date = new Date(2025, m, d);
-          if (date.getMonth() !== m) continue;
+        const monthDiv = document.createElement("div");
+        monthDiv.className = "month";
+        const title = document.createElement("h3");
+        title.textContent = months[m];
+        monthDiv.appendChild(title);
 
-          const div = document.createElement("div");
-          div.className = "day";
-          div.textContent = `${d}.${m + 1}.`;
+        const daysDiv = document.createElement("div");
+        daysDiv.className = "days";
 
-          const dateKey = `${d}.${m + 1}.2025`;
-          if (emp.freeDays.includes(dateKey)) div.classList.add("free-day");
-          if (emp.vacations.includes(dateKey)) div.classList.add("vacation-day");
+        const daysInMonth = new Date(year, m + 1, 0).getDate();
+        for (let d = 1; d <= daysInMonth; d++) {
+          const day = document.createElement("div");
+          day.className = "day";
+          day.textContent = d;
 
-          div.addEventListener("click", () => toggleDay(dateKey, div));
-          cal.appendChild(div);
+          const key = `${year}-${m + 1}-${d}`;
+          if (saved[key] === "free") day.classList.add("free");
+          if (saved[key] === "vacation") day.classList.add("vacation");
+
+          day.addEventListener("click", () => {
+            if (day.classList.contains(currentMode)) {
+              day.classList.remove(currentMode);
+              delete saved[key];
+            } else {
+              day.classList.remove("free", "vacation");
+              day.classList.add(currentMode);
+              saved[key] = currentMode;
+            }
+            localStorage.setItem("emp_data_" + id, JSON.stringify(saved));
+          });
+
+          daysDiv.appendChild(day);
         }
+
+        monthDiv.appendChild(daysDiv);
+        calendar.appendChild(monthDiv);
       }
-      main.appendChild(cal);
     }
 
-    function toggleDay(dateKey, div) {
-      const emp = employees[selectedEmployee];
-      if (!mode) return;
-
-      if (mode === "free") {
-        const idx = emp.freeDays.indexOf(dateKey);
-        if (idx >= 0) emp.freeDays.splice(idx, 1);
-        else emp.freeDays.push(dateKey);
-      }
-
-      if (mode === "vacation") {
-        const idx = emp.vacations.indexOf(dateKey);
-        if (idx >= 0) emp.vacations.splice(idx, 1);
-        else emp.vacations.push(dateKey);
-      }
-
-      saveData();
-      renderCalendar(selectedEmployee);
+    function saveAndBack() {
+      location.reload();
     }
 
-    function renderManager() {
-      main.innerHTML = `<header style="background:#1976d2;color:white;padding:10px;text-align:center;">Menadžer</header>`;
-      const manager = document.createElement("div");
-      manager.className = "manager-view";
+    document.getElementById("menadzerBtn").addEventListener("click", () => {
+      const result = [];
+      const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
 
-      employees.forEach(emp => {
-        const report = document.createElement("div");
-        report.className = "employee-report";
+      for (let i = 1; i <= total; i++) {
+        const name = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+        const saved = JSON.parse(localStorage.getItem("emp_data_" + i) || "{}");
+        if (!Object.keys(saved).length) continue;
 
-        const name = document.createElement("h2");
-        name.textContent = emp.name;
-        report.appendChild(name);
+        const monthlyFree = {};
+        const monthlyVacation = {};
+        for (const key in saved) {
+          const [year, m, d] = key.split("-").map(Number);
+          const monthName = months[m - 1];
+          if (saved[key] === "free") monthlyFree[monthName] = (monthlyFree[monthName] || 0) + 1;
+          if (saved[key] === "vacation") monthlyVacation[monthName] = (monthlyVacation[monthName] || 0) + 1;
+        }
 
-        const freeCount = emp.freeDays.length;
-        const vacCount = emp.vacations.length;
+        let text = `<h3>${name}</h3>`;
+        if (Object.keys(monthlyFree).length) {
+          text += `<p><b>Slobodni dani:</b><br>`;
+          for (const m in monthlyFree) text += `${m}: ${monthlyFree[m]}<br>`;
+          text += `</p>`;
+        }
+        if (Object.keys(monthlyVacation).length) {
+          text += `<p><b>Godišnji odmor:</b><br>`;
+          for (const m in monthlyVacation) text += `${m}: ${monthlyVacation[m]}<br>`;
+          text += `</p>`;
+        }
 
-        const p = document.createElement("p");
-        p.textContent = `Slobodni: ${freeCount} | Godišnji: ${vacCount}`;
-        report.appendChild(p);
+        result.push(text);
+      }
 
-        manager.appendChild(report);
-      });
-
-      const backBtn = document.createElement("button");
-      backBtn.textContent = "Nazad";
-      backBtn.className = "back-btn";
-      backBtn.onclick = renderHome;
-      manager.appendChild(backBtn);
-
-      main.appendChild(manager);
-    }
-
-    document.getElementById("freeDaysBtn").onclick = () => { mode = "free"; alert("Režim: Slobodni dani (zelena)"); };
-    document.getElementById("vacationBtn").onclick = () => { mode = "vacation"; alert("Režim: Godišnji odmor (plava)"); };
-    document.getElementById("managerBtn").onclick = renderManager;
-
-    renderHome();
+      document.body.innerHTML = `<header>Menadžer</header>
+      <div class='container'>${result.join("<hr>")}</div>
+      <div class='bottom-bar'>
+        <button onclick='location.reload()'>Nazad</button>
+      </div>`;
+    });
   </script>
 </body>
 </html>
