@@ -38,6 +38,7 @@
       padding: 12px;
       font-size: 20px;
       font-weight: bold;
+      position: relative;
     }
 
     .container {
@@ -154,15 +155,17 @@
       background: #dce6ff;
     }
 
+    /* GOOGLE DUGMADI - ISPRAVLJENA POZICIJA */
     .google-buttons {
-      position: fixed;
-      top: 10px;
+      position: absolute;
+      top: 50%;
       right: 10px;
+      transform: translateY(-50%);
       z-index: 5000;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 10px;
+      gap: 8px;
     }
 
     .google-btn {
@@ -170,14 +173,15 @@
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 10px 16px;
+      padding: 8px 12px;
       font-weight: bold;
       cursor: pointer;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       display: flex;
       align-items: center;
       justify-content: center;
-      min-width: 160px;
+      min-width: 140px;
+      font-size: 12px;
     }
 
     .google-btn:hover {
@@ -200,34 +204,76 @@
     .user-info {
       background: white;
       color: #333;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      font-size: 14px;
-      max-width: 200px;
+      font-size: 12px;
+      max-width: 180px;
       word-break: break-all;
+      text-align: center;
+    }
+
+    /* RESPONZIVNOST */
+    @media (max-width: 768px) {
+      .google-buttons {
+        position: static;
+        transform: none;
+        flex-direction: row;
+        justify-content: center;
+        margin-top: 10px;
+        gap: 5px;
+      }
+      
+      .google-btn {
+        min-width: 120px;
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+      
+      header {
+        padding-bottom: 70px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .google-buttons {
+        flex-wrap: wrap;
+      }
+      
+      .google-btn {
+        min-width: 100px;
+        font-size: 10px;
+        padding: 5px 8px;
+      }
+      
+      .user-info {
+        font-size: 10px;
+        padding: 4px 8px;
+      }
     }
   </style>
 </head>
 <body>
-  <header>Kalendar zaposlenih</header>
-
-  <!-- 🔐 Google Drive dugmad -->
-  <div class="google-buttons">
-    <div id="userInfo" class="user-info" style="display: none;"></div>
-    <button id="loginBtn" class="google-btn" onclick="handleAuthClick()">
-      🔑 Prijava / Sinhronizuj
-    </button>
-    <button id="pickerBtn" class="google-btn green" onclick="showPicker()" style="display: none;">
-      📁 Izaberi fajl sa Drive
-    </button>
-    <button id="uploadBtn" class="google-btn yellow" onclick="manualUploadToDrive()" style="display: none;">
-      ⬆️ Ručno otpremi
-    </button>
-    <button id="exportBtn" class="google-btn orange" onclick="manualExportImport()">
-      📋 Ručni export/import
-    </button>
-  </div>
+  <header>
+    Kalendar zaposlenih
+    
+    <!-- 🔐 Google Drive dugmad - SADA U HEADERU -->
+    <div class="google-buttons">
+      <div id="userInfo" class="user-info" style="display: none;"></div>
+      <button id="loginBtn" class="google-btn" onclick="handleAuthClick()">
+        🔑 Prijava
+      </button>
+      <button id="pickerBtn" class="google-btn green" onclick="showPicker()" style="display: none;">
+        📁 Izaberi fajl
+      </button>
+      <button id="uploadBtn" class="google-btn yellow" onclick="manualUploadToDrive()" style="display: none;">
+        ⬆️ Sačuvaj
+      </button>
+      <button id="exportBtn" class="google-btn orange" onclick="manualExportImport()">
+        📋 Ručno
+      </button>
+    </div>
+  </header>
 
   <div class="container">
     <div class="employee-list" id="employeeList"></div>
@@ -245,6 +291,7 @@
     const total = 50;
     const employeeList = document.getElementById("employeeList");
 
+    // Učitaj zaposlene iz localStorage ili kreiraj nove
     for (let i = 1; i <= total; i++) {
       const div = document.createElement("div");
       div.className = "employee";
@@ -643,33 +690,47 @@
       
       const choice = confirm(
         "📋 RUČNI EXPORT/IMPORT\n\n" +
-        "OK: Kopiraj podatke za export\n" +
-        "Otkaži: Nalepi podatke za import"
+        "OK: Kopiraj podatke za EXPORT (sačuvaj na Drive)\n" +
+        "Otkaži: Nalepi podatke za IMPORT (vrati sa Drive-a)"
       );
       
       if (choice) {
-        // Export
+        // Export - kopiranje podataka
         navigator.clipboard.writeText(jsonStr).then(() => {
-          alert("✅ Podaci kopirani u clipboard!\n\n" +
-                "Sada ih možeš nalepiti u Google Drive fajl ili sačuvati kao .json fajl.");
+          alert("✅ Podaci kopirani!\n\n" +
+                "Sada:\n" +
+                "1. Otvori Google Drive\n" +
+                "2. Kreiraj NOVI dokument\n" +
+                "3. Preimenuj u 'kalendar_zaposlenih.json'\n" +
+                "4. Nalepi kopirane podatke\n" +
+                "5. Sačuvaj fajl");
         }).catch(() => {
           // Fallback za browsere koji ne podržavaju clipboard
-          prompt("📋 Kopiraj ove podatke:", jsonStr);
+          prompt("📋 Kopiraj ove podatke i nalepi u Google Drive fajl:", jsonStr);
         });
       } else {
-        // Import
-        const imported = prompt("📥 Nalepi JSON podatke ovde:");
+        // Import - unošenje podataka
+        const imported = prompt("📥 Nalepi JSON podatke ovde (iz Google Drive fajla):");
         if (imported) {
           try {
             const data = JSON.parse(imported);
+            let importedCount = 0;
+            
             for (let i = 1; i <= 50; i++) {
-              if (data["emp_" + i]) localStorage.setItem("emp_" + i, data["emp_" + i]);
-              if (data["emp_data_" + i]) localStorage.setItem("emp_data_" + i, data["emp_data_" + i]);
+              if (data["emp_" + i]) {
+                localStorage.setItem("emp_" + i, data["emp_" + i]);
+                importedCount++;
+              }
+              if (data["emp_data_" + i]) {
+                localStorage.setItem("emp_data_" + i, data["emp_data_" + i]);
+                importedCount++;
+              }
             }
-            alert("✅ Podaci učitani!");
+            
+            alert(`✅ Podaci učitani! (${importedCount} zapisa)`);
             location.reload();
           } catch (err) {
-            alert("❌ Nevažeći JSON format!");
+            alert("❌ Nevažeći JSON format!\n\nProveri da li si kopirao ceo sadržaj fajla.");
           }
         }
       }
