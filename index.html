@@ -21,10 +21,10 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      overflow: hidden;
       font-family: 'Arial', 'Helvetica', sans-serif;
       background: #f9f9f9;
       color: #333;
+      overflow: hidden;
     }
 
     #app {
@@ -635,7 +635,8 @@
       loginBtn.innerHTML = '<div class="loader"></div>Preusmeravam...';
       loginBtn.disabled = true;
 
-      const redirectUri = window.location.origin + window.location.pathname;
+      // Koristimo postmessage za redirect umesto redirect URI
+      const redirectUri = 'postmessage';
       
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${CLIENT_ID}&` +
@@ -645,7 +646,17 @@
         `include_granted_scopes=true&` +
         `prompt=consent`;
       
-      window.location.href = authUrl;
+      // Otvaramo prozor za prijavu
+      const authWindow = window.open(authUrl, 'google-auth', 'width=500,height=600');
+      
+      // Proveravamo rezultat
+      const checkAuth = setInterval(() => {
+        if (authWindow.closed) {
+          clearInterval(checkAuth);
+          loginBtn.innerHTML = '🔑 Prijava';
+          loginBtn.disabled = false;
+        }
+      }, 500);
     }
 
     function checkRedirectAuth() {
