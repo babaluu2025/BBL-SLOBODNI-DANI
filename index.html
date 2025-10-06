@@ -195,6 +195,24 @@
       font-size: 12px;
     }
 
+    .google-btn.success {
+      background: #34A853;
+    }
+
+    .google-btn.warning {
+      background: #FBBC05;
+      color: #333;
+    }
+
+    .user-info {
+      background: white;
+      color: #333;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      text-align: center;
+    }
+
     .loader {
       border: 3px solid #f3f3f3;
       border-radius: 50%;
@@ -235,8 +253,10 @@
   <header>
     Kalendar zaposlenih
     <div class="google-buttons">
+      <div id="userInfo" class="user-info" style="display: none;"></div>
       <button id="loginBtn" class="google-btn" onclick="handleAuthClick()">🔑 Prijava</button>
-      <button class="google-btn" style="background: #FF6D00;" onclick="manualExportImport()">📋 Ručno</button>
+      <button id="syncBtn" class="google-btn success" onclick="manualSync()" style="display: none;">🔄 Sinhronizuj</button>
+      <button class="google-btn warning" onclick="manualExportImport()">📋 Ručno</button>
     </div>
   </header>
 
@@ -403,9 +423,18 @@
       `;
     }
 
-    // 🔐 GOOGLE PRIJAVA
+    // 🔐 GOOGLE PRIJAVA I SINHRONIZACIJA
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
-    let accessToken = null;
+    let accessToken = localStorage.getItem('google_access_token') || null;
+    let userEmail = localStorage.getItem('google_user_email') || null;
+
+    // Inicijalizacija pri učitavanju
+    function initAuth() {
+      if (accessToken && userEmail) {
+        updateUIAfterLogin(userEmail);
+      }
+      checkRedirectAuth();
+    }
 
     async function handleAuthClick() {
       const loginBtn = document.getElementById('loginBtn');
@@ -430,42 +459,263 @@
       if (hash && hash.includes('access_token')) {
         const params = new URLSearchParams(hash.substring(1));
         accessToken = params.get('access_token');
+        const expiresIn = params.get('expires_in');
         
         if (accessToken) {
+          // Sačuvaj token u localStorage
+          localStorage.setItem('google_access_token', accessToken);
+          localStorage.setItem('google_token_expiry', Date.now() + (expiresIn * 1000));
+          
           window.history.replaceState({}, document.title, window.location.pathname);
-          document.getElementById('loginBtn').textContent = '✅ Prijavljen';
-          alert("✅ Uspešno prijavljen! Sada možeš koristiti Google Drive.");
+          
+          // Dobavi email korisnika
+          getUserInfo().then(email => {
+            if (email) {
+              userEmail = email;
+              localStorage.setItem('google_user_email', email);
+              updateUIAfterLogin(email);
+              alert("✅ Uspešno prijavljen kao: " + email + "\n\nSada možeš sinhronizovati podatke.");
+            }
+          });
         }
       }
     }
 
-    function manualExportImport() {
-      const allData = {};
+    async function getUserInfo() {
+      try {
+        const response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const userInfo = await response.json();
+          return userInfo.email;
+        }
+      } catch (error) {
+        console.error("Greška pri dobavljanju korisničkih podataka:", error);
+      }
+      return null;
+    }
+
+    function updateUIAfterLogin(email) {
+      document.getElementById('userInfo').style.display = 'block';
+      document.getElementById('userInfo').textContent = `Prijavljen: ${email}`;
+      document.getElementById('loginBtn').textContent = '✅ Prijavljen';
+      document.getElementById('loginBtn').disabled = true;
+      document.getElementById('syncBtn').style.display = 'flex';
+    }
+
+    async function manualSync() {
+      if (!accessToken) {
+        alert("❌ Niste prijavljeni!");
+        return;
+      }
+
+      const syncBtn = document.getElementById('syncBtn');
+      syncBtn.innerHTML = '<div class="loader"></div>Sinhronizujem...';
+      syncBtn.disabled = true;
+
+      try {
+        // Prvo pokušaj da preuzmeš podatke sa Drive-a
+        const restored = await restoreFromDrive();
+        if (restored) {
+          alert("✅ Podaci uspešno preuzeti sa Google Drive-a!\n\nStranica će se osvežiti...");
+          setTimeout(() => {
+            location.reload();
+          }, 2000);
+        } else {
+          // Ako nema podataka, sačuvaj trenutne
+          await syncToDrive();
+          alert("💾 Podaci uspešno sačuvani na Google Drive!\n\nFajl: 'kalendar_zaposlenih.json'");
+        }
+      } catch (error) {
+        alert("❌ Greška pri sinhronizaciji: " + error.message);
+      } finally {
+        syncBtn.innerHTML = '🔄 Sinhronizuj';
+        syncBtn.disabled = false;
+      }
+    }
+
+    async function syncToDrive() {
+      if (!accessToken) {
+        throw new Error("Niste prijavljeni");
+      }
+
+      const allData = {
+        app: "Kalendar Zaposlenih",
+        lastSync: new Date().toISOString(),
+        employees: {},
+        calendarData: {}
+      };
+
       for (let i = 1; i <= 50; i++) {
-        allData["emp_" + i] = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+        allData.employees[i] = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
         const empData = localStorage.getItem("emp_data_" + i);
-        if (empData) allData["emp_data_" + i] = empData;
+        if (empData && empData !== "{}") {
+          allData.calendarData[i] = JSON.parse(empData);
+        }
+      }
+
+      const fileContent = JSON.stringify(allData, null, 2);
+      const metadata = {
+        name: "kalendar_zaposlenih.json",
+        mimeType: "application/json",
+        description: "Backup podataka kalendara zaposlenih"
+      };
+
+      // Prvo pronađi postojeći fajl
+      const query = "name='kalendar_zaposlenih.json' and trashed=false";
+      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
+        headers: { Authorization: "Bearer " + accessToken },
+      });
+      
+      if (!searchRes.ok) {
+        throw new Error("Greška pri pretraživanju Drive-a");
+      }
+      
+      const searchData = await searchRes.json();
+
+      const blob = new Blob([fileContent], { type: "application/json" });
+      const form = new FormData();
+      form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+      form.append("file", blob);
+
+      let url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+      let method = "POST";
+
+      if (searchData.files && searchData.files.length > 0) {
+        const fileId = searchData.files[0].id;
+        url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+        method = "PATCH";
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: { Authorization: "Bearer " + accessToken },
+        body: form,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error("Greška pri čuvanju na Drive: " + res.status);
+      }
+
+      return true;
+    }
+
+    async function restoreFromDrive() {
+      if (!accessToken) {
+        return false;
+      }
+
+      const query = "name='kalendar_zaposlenih.json' and trashed=false";
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
+        headers: { Authorization: "Bearer " + accessToken },
+      });
+      
+      if (!res.ok) {
+        throw new Error("Greška pri pretraživanju fajlova");
+      }
+      
+      const data = await res.json();
+
+      if (!data.files || data.files.length === 0) {
+        return false;
+      }
+
+      const fileId = data.files[0].id;
+      const downloadRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+        headers: { Authorization: "Bearer " + accessToken },
+      });
+      
+      if (!downloadRes.ok) {
+        throw new Error("Greška pri preuzimanju fajla");
+      }
+      
+      const jsonData = await downloadRes.json();
+
+      let importedCount = 0;
+      for (let i = 1; i <= 50; i++) {
+        if (jsonData.employees && jsonData.employees[i]) {
+          localStorage.setItem("emp_" + i, jsonData.employees[i]);
+          importedCount++;
+        }
+        if (jsonData.calendarData && jsonData.calendarData[i]) {
+          localStorage.setItem("emp_data_" + i, JSON.stringify(jsonData.calendarData[i]));
+          importedCount++;
+        }
+      }
+
+      return importedCount > 0;
+    }
+
+    function manualExportImport() {
+      const allData = {
+        info: {
+          app: "Kalendar Zaposlenih",
+          lastSync: new Date().toISOString(),
+          totalEmployees: 50
+        },
+        employees: {},
+        calendarData: {}
+      };
+      
+      for (let i = 1; i <= 50; i++) {
+        allData.employees[i] = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+        const empData = localStorage.getItem("emp_data_" + i);
+        if (empData && empData !== "{}") {
+          allData.calendarData[i] = JSON.parse(empData);
+        }
       }
       
       const jsonStr = JSON.stringify(allData, null, 2);
-      const choice = confirm("📋 RUČNA SINHRONIZACIJA\n\nOK: Kopiraj podatke\nOtkaži: Nalepi podatke");
+      const currentDate = new Date().toLocaleDateString('sr-RS');
+      
+      const choice = confirm(
+        `📋 RUČNA SINHRONIZACIJA\n\nDatum: ${currentDate}\n\n` +
+        "OK: KOPIRAJ podatke za čuvanje na Drive\n" +
+        "Otkaži: NALEPI podatke sa drugog uređaja"
+      );
       
       if (choice) {
-        navigator.clipboard.writeText(jsonStr);
-        alert("✅ Podaci kopirani! Nalepi u Google Drive fajl.");
+        navigator.clipboard.writeText(jsonStr).then(() => {
+          alert("✅ PODACI KOPIRANI!\n\n" +
+                "Sada:\n" +
+                "1. Otvorite Google Drive\n" +
+                "2. Kreirajte NOVI dokument\n" +
+                "3. Preimenujte u 'kalendar_zaposlenih.json'\n" +
+                "4. Nalepite kopirane podatke\n" +
+                "5. Sačuvajte fajl\n\n" +
+                "Podaci su spremni za drugi uređaj! 📱");
+        }).catch(() => {
+          prompt("📋 Kopirajte ove podatke i nalepite u Google Drive fajl:", jsonStr);
+        });
       } else {
-        const imported = prompt("📥 Nalepi podatke ovde:");
+        const imported = prompt("📥 Nalepite JSON podatke ovde (iz Google Drive fajla):");
         if (imported) {
           try {
             const data = JSON.parse(imported);
+            let importedCount = 0;
+            
             for (let i = 1; i <= 50; i++) {
-              if (data["emp_" + i]) localStorage.setItem("emp_" + i, data["emp_" + i]);
-              if (data["emp_data_" + i]) localStorage.setItem("emp_data_" + i, data["emp_data_" + i]);
+              if (data.employees && data.employees[i]) {
+                localStorage.setItem("emp_" + i, data.employees[i]);
+                importedCount++;
+              }
+              if (data.calendarData && data.calendarData[i]) {
+                localStorage.setItem("emp_data_" + i, JSON.stringify(data.calendarData[i]));
+                importedCount++;
+              }
             }
-            alert("✅ Podaci učitani!");
-            location.reload();
+            
+            alert(`✅ Podaci uspešno učitani! (${importedCount} zapisa)\n\nStranica će se osvežiti...`);
+            setTimeout(() => {
+              location.reload();
+            }, 2000);
           } catch (err) {
-            alert("❌ Nevažeći JSON format!");
+            alert("❌ Nevažeći JSON format!\n\nProverite da li ste kopirali ceo sadržaj fajla.");
           }
         }
       }
@@ -480,7 +730,8 @@
       });
     }
 
-    window.addEventListener('load', checkRedirectAuth);
+    // Inicijalizacija pri učitavanju
+    window.addEventListener('load', initAuth);
   </script>
 </body>
 </html>
