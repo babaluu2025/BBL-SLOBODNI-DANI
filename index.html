@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html lang="sr" translate="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="google" content="notranslate">
+  <meta http-equiv="Content-Language" content="sr">
   <title>Kalendar zaposlenih</title>
   
   <!-- Manifest -->
@@ -11,56 +13,85 @@
   <link rel="apple-touch-icon" href="icon-512.png">
 
   <style>
+    /* ANDROID OPTIMIZOVANI STILOVI */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Arial', 'Helvetica', sans-serif;
       margin: 0;
-      padding-bottom: 80px;
+      padding: 0;
+      padding-bottom: 90px;
       background: #f9f9f9;
       color: #333;
+      overflow-x: hidden;
+      height: 100vh;
     }
 
     header {
       background: #2563eb;
       color: white;
       text-align: center;
-      padding: 12px;
-      font-size: 20px;
+      padding: 15px 10px;
+      font-size: 18px;
       font-weight: bold;
-      position: relative;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
     .container {
       padding: 10px;
+      max-width: 100%;
+      overflow-x: hidden;
     }
 
+    /* OPTIMIZOVANO ZA ANDROID */
     .employee-list {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      margin-bottom: 15px;
     }
 
     .employee {
       background: white;
-      border-radius: 10px;
-      padding: 12px;
+      border-radius: 12px;
+      padding: 12px 8px;
       text-align: center;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       cursor: pointer;
-      transition: 0.2s;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .employee:hover {
+    .employee:active {
+      transform: scale(0.98);
       background: #eaf1ff;
+      border-color: #2563eb;
     }
 
     .employee input {
       border: none;
       background: transparent;
       text-align: center;
-      font-size: 16px;
+      font-size: 15px;
       width: 100%;
       outline: none;
+      font-weight: bold;
+      -webkit-user-select: text;
+      user-select: text;
+      padding: 5px;
     }
 
     .bottom-bar {
@@ -72,27 +103,39 @@
       color: white;
       display: flex;
       justify-content: space-around;
-      padding: 12px;
+      padding: 12px 5px;
       font-weight: bold;
       z-index: 1000;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
     }
 
     .bottom-bar button {
       background: white;
       color: #2563eb;
       border: none;
-      border-radius: 8px;
-      padding: 10px 16px;
+      border-radius: 25px;
+      padding: 12px 8px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 14px;
+      min-width: 0;
+      flex: 1;
+      margin: 0 3px;
+      transition: all 0.3s ease;
     }
 
-    /* POBOLJŠANI KALENDAR */
+    .bottom-bar button:active {
+      transform: scale(0.95);
+      background: #f0f4ff;
+    }
+
+    /* POBOLJŠANI KALENDAR ZA MOBILNE */
     .calendar-container {
       padding: 10px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      grid-template-columns: 1fr;
       gap: 15px;
+      max-width: 100%;
     }
 
     .month {
@@ -100,7 +143,7 @@
       border-radius: 12px;
       padding: 15px;
       box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-      break-inside: avoid;
+      width: 100%;
     }
 
     .month h3 {
@@ -116,28 +159,28 @@
     .days-header {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
+      gap: 3px;
       margin-bottom: 8px;
       text-align: center;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 11px;
       color: #666;
     }
 
     .days {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
+      gap: 3px;
       text-align: center;
     }
 
     .day {
-      padding: 8px 4px;
+      padding: 8px 2px;
       border-radius: 6px;
       background: #f8f9fa;
       cursor: pointer;
       transition: 0.2s;
-      font-size: 14px;
+      font-size: 13px;
       min-height: 35px;
       display: flex;
       align-items: center;
@@ -156,9 +199,9 @@
       font-weight: bold;
     }
 
-    .day:hover {
+    .day:active {
       background: #e2e8f0;
-      transform: scale(1.05);
+      transform: scale(0.95);
     }
 
     .day.empty {
@@ -166,21 +209,16 @@
       cursor: default;
     }
 
-    .day.empty:hover {
-      background: transparent;
-      transform: none;
-    }
-
-    /* Google dugmad */
+    /* Google dugmad - kompaktnija za mobilne */
     .google-buttons {
       position: absolute;
       top: 50%;
-      right: 10px;
+      right: 5px;
       transform: translateY(-50%);
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 8px;
+      gap: 6px;
     }
 
     .google-btn {
@@ -188,11 +226,12 @@
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 8px 12px;
+      padding: 6px 10px;
       font-weight: bold;
       cursor: pointer;
-      min-width: 140px;
-      font-size: 12px;
+      min-width: 110px;
+      font-size: 11px;
+      white-space: nowrap;
     }
 
     .google-btn.success {
@@ -207,21 +246,22 @@
     .user-info {
       background: white;
       color: #333;
-      padding: 6px 10px;
+      padding: 5px 8px;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 10px;
       text-align: center;
+      max-width: 130px;
     }
 
     .loader {
-      border: 3px solid #f3f3f3;
+      border: 2px solid #f3f3f3;
       border-radius: 50%;
-      border-top: 3px solid #4285F4;
-      width: 20px;
-      height: 20px;
+      border-top: 2px solid #4285F4;
+      width: 16px;
+      height: 16px;
       animation: spin 1s linear infinite;
       display: inline-block;
-      margin-right: 8px;
+      margin-right: 6px;
     }
 
     @keyframes spin {
@@ -229,7 +269,22 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Responsive */
+    /* Status bar za sinhronizaciju */
+    .sync-status {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #10B981;
+      color: white;
+      text-align: center;
+      padding: 5px;
+      font-size: 12px;
+      z-index: 2000;
+      display: none;
+    }
+
+    /* Responsive improvements */
     @media (max-width: 768px) {
       .google-buttons {
         position: static;
@@ -237,19 +292,48 @@
         flex-direction: row;
         justify-content: center;
         margin-top: 10px;
+        gap: 5px;
       }
       
-      .calendar-container {
-        grid-template-columns: 1fr;
+      .google-btn {
+        min-width: 100px;
+        font-size: 10px;
+        padding: 5px 8px;
       }
       
       header {
-        padding-bottom: 70px;
+        padding-bottom: 80px;
+      }
+      
+      .employee-list {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+    }
+
+    @media (max-width: 480px) {
+      .employee-list {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .employee {
+        min-height: 60px;
+        padding: 8px 5px;
+      }
+      
+      .employee input {
+        font-size: 13px;
+      }
+      
+      .bottom-bar button {
+        font-size: 12px;
+        padding: 10px 5px;
       }
     }
   </style>
 </head>
 <body>
+  <div id="syncStatus" class="sync-status"></div>
+  
   <header>
     Kalendar zaposlenih
     <div class="google-buttons">
@@ -274,6 +358,15 @@
     // KALENDAR LOGIKA
     const total = 50;
     let currentMode = "free";
+    let hasUnsavedChanges = false;
+    let lastSaveTime = localStorage.getItem('last_save_time') || 0;
+
+    // Praćenje promjena
+    function markChangesMade() {
+      hasUnsavedChanges = true;
+      localStorage.setItem('has_unsaved_changes', 'true');
+      localStorage.setItem('last_change_time', Date.now());
+    }
 
     // Učitaj zaposlene
     for (let i = 1; i <= total; i++) {
@@ -283,6 +376,7 @@
       input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
       input.addEventListener("change", () => {
         localStorage.setItem("emp_" + i, input.value);
+        markChangesMade();
       });
       div.appendChild(input);
       div.addEventListener("click", () => openCalendar(input.value, i));
@@ -301,9 +395,9 @@
           <div class="calendar-container" id="calendar"></div>
         </div>
         <div class="bottom-bar">
-          <button onclick="location.reload()">← Nazad na listu</button>
-          <button onclick="setMode('free')">Slobodni dani</button>
-          <button onclick="setMode('vacation')">Godišnji odmor</button>
+          <button onclick="saveAndExit()">💾 Sačuvaj & Nazad</button>
+          <button onclick="setMode('free')">Slobodni</button>
+          <button onclick="setMode('vacation')">Godišnji</button>
         </div>
       `;
 
@@ -341,7 +435,6 @@
         daysDiv.className = "days";
 
         const firstDay = new Date(year, m, 1).getDay();
-        // Prilagodi za naš kalendar (Ponedjeljak = 0)
         let startDay = firstDay === 0 ? 6 : firstDay - 1;
 
         // Prazna polja za početak mjeseca
@@ -371,6 +464,7 @@
               saved[key] = currentMode;
             }
             localStorage.setItem("emp_data_" + id, JSON.stringify(saved));
+            markChangesMade();
           });
 
           daysDiv.appendChild(day);
@@ -379,6 +473,13 @@
         monthDiv.appendChild(daysDiv);
         calendar.appendChild(monthDiv);
       }
+    }
+
+    async function saveAndExit() {
+      if (hasUnsavedChanges) {
+        await autoSaveToDrive();
+      }
+      location.reload();
     }
 
     function showManager() {
@@ -423,17 +524,23 @@
       `;
     }
 
-    // 🔐 GOOGLE PRIJAVA I SINHRONIZACIJA
+    // 🔐 PAMETNA GOOGLE SINHRONIZACIJA
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
     let accessToken = localStorage.getItem('google_access_token') || null;
     let userEmail = localStorage.getItem('google_user_email') || null;
 
-    // Inicijalizacija pri učitavanju
     function initAuth() {
       if (accessToken && userEmail) {
         updateUIAfterLogin(userEmail);
       }
       checkRedirectAuth();
+      
+      // Automatski uradi sinhronizaciju pri učitavanju
+      if (accessToken) {
+        setTimeout(() => {
+          autoSyncOnLoad();
+        }, 2000);
+      }
     }
 
     async function handleAuthClick() {
@@ -462,19 +569,20 @@
         const expiresIn = params.get('expires_in');
         
         if (accessToken) {
-          // Sačuvaj token u localStorage
           localStorage.setItem('google_access_token', accessToken);
           localStorage.setItem('google_token_expiry', Date.now() + (expiresIn * 1000));
           
           window.history.replaceState({}, document.title, window.location.pathname);
           
-          // Dobavi email korisnika
           getUserInfo().then(email => {
             if (email) {
               userEmail = email;
               localStorage.setItem('google_user_email', email);
               updateUIAfterLogin(email);
-              alert("✅ Uspešno prijavljen kao: " + email + "\n\nSada možeš sinhronizovati podatke.");
+              showSyncStatus("✅ Uspešno prijavljen! Sinhronizujem...", "success");
+              setTimeout(() => {
+                autoSyncOnLoad();
+              }, 1500);
             }
           });
         }
@@ -507,6 +615,59 @@
       document.getElementById('syncBtn').style.display = 'flex';
     }
 
+    // PAMETNA SINHRONIZACIJA - MERGE PROMJENA
+    async function autoSyncOnLoad() {
+      if (!accessToken) return;
+
+      try {
+        showSyncStatus("🔍 Proveravam nove promjene...", "info");
+        
+        const driveData = await getDriveData();
+        if (!driveData) {
+          // Nema podataka na Drive-u - sačuvaj trenutne
+          await autoSaveToDrive();
+          return;
+        }
+
+        const localData = getLocalData();
+        const driveTime = driveData.lastSync ? new Date(driveData.lastSync).getTime() : 0;
+        const localTime = lastSaveTime;
+
+        if (driveTime > localTime) {
+          // Drive ima novije podatke - preuzmi ih
+          await applyDriveData(driveData);
+          showSyncStatus("✅ Novi podaci preuzeti sa Drive-a", "success");
+        } else if (hasUnsavedChanges) {
+          // Lokalno ima novije podatke - pošalji na Drive
+          await autoSaveToDrive();
+        } else {
+          showSyncStatus("✅ Podaci su ažurni", "success");
+        }
+
+      } catch (error) {
+        console.error("Greška pri automatskoj sinhronizaciji:", error);
+      }
+    }
+
+    async function autoSaveToDrive() {
+      if (!accessToken) return;
+
+      try {
+        showSyncStatus("💾 Snimanje promjena na Drive...", "info");
+        
+        const success = await syncToDrive();
+        if (success) {
+          hasUnsavedChanges = false;
+          localStorage.removeItem('has_unsaved_changes');
+          lastSaveTime = Date.now();
+          localStorage.setItem('last_save_time', lastSaveTime);
+          showSyncStatus("✅ Promjene sačuvane na Drive", "success");
+        }
+      } catch (error) {
+        showSyncStatus("❌ Greška pri snimanju", "error");
+      }
+    }
+
     async function manualSync() {
       if (!accessToken) {
         alert("❌ Niste prijavljeni!");
@@ -518,18 +679,7 @@
       syncBtn.disabled = true;
 
       try {
-        // Prvo pokušaj da preuzmeš podatke sa Drive-a
-        const restored = await restoreFromDrive();
-        if (restored) {
-          alert("✅ Podaci uspešno preuzeti sa Google Drive-a!\n\nStranica će se osvežiti...");
-          setTimeout(() => {
-            location.reload();
-          }, 2000);
-        } else {
-          // Ako nema podataka, sačuvaj trenutne
-          await syncToDrive();
-          alert("💾 Podaci uspešno sačuvani na Google Drive!\n\nFajl: 'kalendar_zaposlenih.json'");
-        }
+        await autoSyncOnLoad();
       } catch (error) {
         alert("❌ Greška pri sinhronizaciji: " + error.message);
       } finally {
@@ -538,25 +688,75 @@
       }
     }
 
+    // POMOCNE FUNKCIJE ZA PAMETNU SINHRONIZACIJU
+    function getLocalData() {
+      const data = {
+        employees: {},
+        calendarData: {},
+        lastSync: new Date().toISOString()
+      };
+
+      for (let i = 1; i <= 50; i++) {
+        data.employees[i] = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+        const empData = localStorage.getItem("emp_data_" + i);
+        if (empData && empData !== "{}") {
+          data.calendarData[i] = JSON.parse(empData);
+        }
+      }
+
+      return data;
+    }
+
+    async function getDriveData() {
+      if (!accessToken) return null;
+
+      const query = "name='kalendar_zaposlenih.json' and trashed=false";
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
+        headers: { Authorization: "Bearer " + accessToken },
+      });
+      
+      if (!res.ok) return null;
+      
+      const data = await res.json();
+      if (!data.files || data.files.length === 0) return null;
+
+      const fileId = data.files[0].id;
+      const downloadRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+        headers: { Authorization: "Bearer " + accessToken },
+      });
+      
+      if (!downloadRes.ok) return null;
+      
+      return await downloadRes.json();
+    }
+
+    async function applyDriveData(driveData) {
+      if (!driveData) return;
+
+      let importedCount = 0;
+      for (let i = 1; i <= 50; i++) {
+        if (driveData.employees && driveData.employees[i]) {
+          localStorage.setItem("emp_" + i, driveData.employees[i]);
+          importedCount++;
+        }
+        if (driveData.calendarData && driveData.calendarData[i]) {
+          localStorage.setItem("emp_data_" + i, JSON.stringify(driveData.calendarData[i]));
+          importedCount++;
+        }
+      }
+
+      lastSaveTime = driveData.lastSync ? new Date(driveData.lastSync).getTime() : Date.now();
+      localStorage.setItem('last_save_time', lastSaveTime);
+      
+      return importedCount > 0;
+    }
+
     async function syncToDrive() {
       if (!accessToken) {
         throw new Error("Niste prijavljeni");
       }
 
-      const allData = {
-        app: "Kalendar Zaposlenih",
-        lastSync: new Date().toISOString(),
-        employees: {},
-        calendarData: {}
-      };
-
-      for (let i = 1; i <= 50; i++) {
-        allData.employees[i] = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-        const empData = localStorage.getItem("emp_data_" + i);
-        if (empData && empData !== "{}") {
-          allData.calendarData[i] = JSON.parse(empData);
-        }
-      }
+      const allData = getLocalData();
 
       const fileContent = JSON.stringify(allData, null, 2);
       const metadata = {
@@ -565,7 +765,6 @@
         description: "Backup podataka kalendara zaposlenih"
       };
 
-      // Prvo pronađi postojeći fajl
       const query = "name='kalendar_zaposlenih.json' and trashed=false";
       const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
         headers: { Authorization: "Bearer " + accessToken },
@@ -605,95 +804,51 @@
       return true;
     }
 
-    async function restoreFromDrive() {
-      if (!accessToken) {
-        return false;
-      }
-
-      const query = "name='kalendar_zaposlenih.json' and trashed=false";
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
-        headers: { Authorization: "Bearer " + accessToken },
-      });
+    function showSyncStatus(message, type) {
+      const statusEl = document.getElementById('syncStatus');
+      statusEl.textContent = message;
+      statusEl.style.display = 'block';
       
-      if (!res.ok) {
-        throw new Error("Greška pri pretraživanju fajlova");
-      }
-      
-      const data = await res.json();
-
-      if (!data.files || data.files.length === 0) {
-        return false;
-      }
-
-      const fileId = data.files[0].id;
-      const downloadRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-        headers: { Authorization: "Bearer " + accessToken },
-      });
-      
-      if (!downloadRes.ok) {
-        throw new Error("Greška pri preuzimanju fajla");
+      if (type === 'success') {
+        statusEl.style.background = '#10B981';
+      } else if (type === 'error') {
+        statusEl.style.background = '#EF4444';
+      } else {
+        statusEl.style.background = '#3B82F6';
       }
       
-      const jsonData = await downloadRes.json();
-
-      let importedCount = 0;
-      for (let i = 1; i <= 50; i++) {
-        if (jsonData.employees && jsonData.employees[i]) {
-          localStorage.setItem("emp_" + i, jsonData.employees[i]);
-          importedCount++;
-        }
-        if (jsonData.calendarData && jsonData.calendarData[i]) {
-          localStorage.setItem("emp_data_" + i, JSON.stringify(jsonData.calendarData[i]));
-          importedCount++;
-        }
-      }
-
-      return importedCount > 0;
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, 3000);
     }
 
-    function manualExportImport() {
-      const allData = {
-        info: {
-          app: "Kalendar Zaposlenih",
-          lastSync: new Date().toISOString(),
-          totalEmployees: 50
-        },
-        employees: {},
-        calendarData: {}
-      };
-      
-      for (let i = 1; i <= 50; i++) {
-        allData.employees[i] = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-        const empData = localStorage.getItem("emp_data_" + i);
-        if (empData && empData !== "{}") {
-          allData.calendarData[i] = JSON.parse(empData);
+    // AUTOMATSKO SNIMANJE PRI IZLAZKU
+    window.addEventListener('beforeunload', async (event) => {
+      if (hasUnsavedChanges && accessToken) {
+        // Ne možemo async u beforeunload, ali možemo pokušati sync request
+        try {
+          await autoSaveToDrive();
+        } catch (error) {
+          console.log("Nije moguće sačuvati pri izlasku:", error);
         }
       }
-      
+    });
+
+    // Ručna sinhronizacija ostaje ista
+    function manualExportImport() {
+      const allData = getLocalData();
       const jsonStr = JSON.stringify(allData, null, 2);
-      const currentDate = new Date().toLocaleDateString('sr-RS');
       
-      const choice = confirm(
-        `📋 RUČNA SINHRONIZACIJA\n\nDatum: ${currentDate}\n\n` +
-        "OK: KOPIRAJ podatke za čuvanje na Drive\n" +
-        "Otkaži: NALEPI podatke sa drugog uređaja"
-      );
+      const choice = confirm("📋 RUČNA SINHRONIZACIJA\n\nOK: Kopiraj podatke\nOtkaži: Nalepi podatke");
       
       if (choice) {
         navigator.clipboard.writeText(jsonStr).then(() => {
-          alert("✅ PODACI KOPIRANI!\n\n" +
-                "Sada:\n" +
-                "1. Otvorite Google Drive\n" +
-                "2. Kreirajte NOVI dokument\n" +
-                "3. Preimenujte u 'kalendar_zaposlenih.json'\n" +
-                "4. Nalepite kopirane podatke\n" +
-                "5. Sačuvajte fajl\n\n" +
-                "Podaci su spremni za drugi uređaj! 📱");
+          alert("✅ PODACI KOPIRANI!\n\nNalepite u Google Drive fajl 'kalendar_zaposlenih.json'");
         }).catch(() => {
-          prompt("📋 Kopirajte ove podatke i nalepite u Google Drive fajl:", jsonStr);
+          prompt("📋 Kopirajte ove podatke:", jsonStr);
         });
       } else {
-        const imported = prompt("📥 Nalepite JSON podatke ovde (iz Google Drive fajla):");
+        const imported = prompt("📥 Nalepite JSON podatke ovde:");
         if (imported) {
           try {
             const data = JSON.parse(imported);
@@ -710,18 +865,19 @@
               }
             }
             
-            alert(`✅ Podaci uspešno učitani! (${importedCount} zapisa)\n\nStranica će se osvežiti...`);
-            setTimeout(() => {
-              location.reload();
-            }, 2000);
+            alert(`✅ Podaci učitani! (${importedCount} zapisa)`);
+            location.reload();
           } catch (err) {
-            alert("❌ Nevažeći JSON format!\n\nProverite da li ste kopirali ceo sadržaj fajla.");
+            alert("❌ Nevažeći JSON format!");
           }
         }
       }
     }
 
-    // Service Worker za PWA
+    // Inicijalizacija
+    window.addEventListener('load', initAuth);
+    
+    // Service Worker
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("service-worker.js")
@@ -729,9 +885,6 @@
           .catch(err => console.error("❌ Greška pri registraciji Service Workera:", err));
       });
     }
-
-    // Inicijalizacija pri učitavanju
-    window.addEventListener('load', initAuth);
   </script>
 </body>
 </html>
