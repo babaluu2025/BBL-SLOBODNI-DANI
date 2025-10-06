@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="icon-512.png">
 
   <style>
-    /* ANDROID OPTIMIZOVANI STILOVI */
+    /* ANDROID OPTIMIZOVANI STILOVI - isti kao prije */
     * {
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
@@ -338,9 +338,9 @@
     Kalendar zaposlenih
     <div class="google-buttons">
       <div id="userInfo" class="user-info" style="display: none;"></div>
-      <button id="loginBtn" class="google-btn" onclick="handleAuthClick()">🔑 Prijava</button>
-      <button id="syncBtn" class="google-btn success" onclick="manualSync()" style="display: none;">🔄 Sinhronizuj</button>
-      <button class="google-btn warning" onclick="manualExportImport()">📋 Ručno</button>
+      <button id="loginBtn" class="google-btn">🔑 Prijava</button>
+      <button id="syncBtn" class="google-btn success" style="display: none;">🔄 Sinhronizuj</button>
+      <button id="manualBtn" class="google-btn warning">📋 Ručno</button>
     </div>
   </header>
 
@@ -349,9 +349,9 @@
   </div>
 
   <div class="bottom-bar">
-    <button onclick="setMode('free')">Slobodni dani</button>
-    <button onclick="setMode('vacation')">Godišnji odmor</button>
-    <button onclick="showManager()">Menadžer</button>
+    <button id="slobodniBtn">Slobodni dani</button>
+    <button id="godisnjiBtn">Godišnji odmor</button>
+    <button id="menadzerBtn">Menadžer</button>
   </div>
 
   <script>
@@ -361,6 +361,17 @@
     let hasUnsavedChanges = false;
     let lastSaveTime = localStorage.getItem('last_save_time') || 0;
 
+    // Inicijalizacija event listenera
+    function initializeEventListeners() {
+      // Glavni event listeneri
+      document.getElementById('slobodniBtn').addEventListener('click', () => setMode('free'));
+      document.getElementById('godisnjiBtn').addEventListener('click', () => setMode('vacation'));
+      document.getElementById('menadzerBtn').addEventListener('click', showManager);
+      document.getElementById('loginBtn').addEventListener('click', handleAuthClick);
+      document.getElementById('syncBtn').addEventListener('click', manualSync);
+      document.getElementById('manualBtn').addEventListener('click', manualExportImport);
+    }
+
     // Praćenje promjena
     function markChangesMade() {
       hasUnsavedChanges = true;
@@ -369,18 +380,23 @@
     }
 
     // Učitaj zaposlene
-    for (let i = 1; i <= total; i++) {
-      const div = document.createElement("div");
-      div.className = "employee";
-      const input = document.createElement("input");
-      input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-      input.addEventListener("change", () => {
-        localStorage.setItem("emp_" + i, input.value);
-        markChangesMade();
-      });
-      div.appendChild(input);
-      div.addEventListener("click", () => openCalendar(input.value, i));
-      document.getElementById("employeeList").appendChild(div);
+    function initializeEmployees() {
+      const employeeList = document.getElementById("employeeList");
+      employeeList.innerHTML = '';
+      
+      for (let i = 1; i <= total; i++) {
+        const div = document.createElement("div");
+        div.className = "employee";
+        const input = document.createElement("input");
+        input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
+        input.addEventListener("change", () => {
+          localStorage.setItem("emp_" + i, input.value);
+          markChangesMade();
+        });
+        div.appendChild(input);
+        div.addEventListener("click", () => openCalendar(input.value, i));
+        employeeList.appendChild(div);
+      }
     }
 
     function setMode(mode) { 
@@ -390,17 +406,51 @@
 
     function openCalendar(name, id) {
       document.body.innerHTML = `
-        <header>${name} - Kalendar</header>
+        <header>
+          <span>${name} - Kalendar</span>
+          <div class="google-buttons">
+            <button id="backBtn" class="google-btn" style="background: #6B7280;">← Nazad</button>
+          </div>
+        </header>
         <div class="container">
           <div class="calendar-container" id="calendar"></div>
         </div>
         <div class="bottom-bar">
-          <button onclick="saveAndExit()">💾 Sačuvaj & Nazad</button>
-          <button onclick="setMode('free')">Slobodni</button>
-          <button onclick="setMode('vacation')">Godišnji</button>
+          <button id="saveExitBtn">💾 Sačuvaj & Nazad</button>
+          <button id="freeBtn">Slobodni</button>
+          <button id="vacationBtn">Godišnji</button>
         </div>
       `;
 
+      // Dodaj event listenere za kalendar dugmad
+      document.getElementById('backBtn').addEventListener('click', () => {
+        if (hasUnsavedChanges && accessToken) {
+          if (confirm("Imate nesačuvane promjene. Želite li sačuvati na Google Drive prije izlaska?")) {
+            autoSaveToDrive().finally(() => location.reload());
+          } else {
+            location.reload();
+          }
+        } else {
+          location.reload();
+        }
+      });
+
+      document.getElementById('saveExitBtn').addEventListener('click', async () => {
+        if (hasUnsavedChanges && accessToken) {
+          showSyncStatus("💾 Snimanje promjena...", "info");
+          await autoSaveToDrive();
+        }
+        location.reload();
+      });
+
+      document.getElementById('freeBtn').addEventListener('click', () => setMode('free'));
+      document.getElementById('vacationBtn').addEventListener('click', () => setMode('vacation'));
+
+      // Generiši kalendar
+      generateCalendar(name, id);
+    }
+
+    function generateCalendar(name, id) {
       const now = new Date();
       const year = now.getFullYear();
       const saved = JSON.parse(localStorage.getItem("emp_data_" + id) || "{}");
@@ -475,13 +525,6 @@
       }
     }
 
-    async function saveAndExit() {
-      if (hasUnsavedChanges) {
-        await autoSaveToDrive();
-      }
-      location.reload();
-    }
-
     function showManager() {
       const result = [];
       const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
@@ -516,12 +559,20 @@
       }
 
       document.body.innerHTML = `
-        <header>Menadžerski pregled</header>
+        <header>
+          <span>Menadžerski pregled</span>
+          <div class="google-buttons">
+            <button id="backBtn" class="google-btn" style="background: #6B7280;">← Nazad</button>
+          </div>
+        </header>
         <div class='container'>${result.join("<hr>")}</div>
         <div class='bottom-bar'>
-          <button onclick='location.reload()'>← Nazad</button>
+          <button id="backMainBtn">← Nazad</button>
         </div>
       `;
+
+      document.getElementById('backBtn').addEventListener('click', () => location.reload());
+      document.getElementById('backMainBtn').addEventListener('click', () => location.reload());
     }
 
     // 🔐 PAMETNA GOOGLE SINHRONIZACIJA
@@ -637,6 +688,7 @@
           // Drive ima novije podatke - preuzmi ih
           await applyDriveData(driveData);
           showSyncStatus("✅ Novi podaci preuzeti sa Drive-a", "success");
+          setTimeout(() => location.reload(), 2000);
         } else if (hasUnsavedChanges) {
           // Lokalno ima novije podatke - pošalji na Drive
           await autoSaveToDrive();
@@ -650,7 +702,7 @@
     }
 
     async function autoSaveToDrive() {
-      if (!accessToken) return;
+      if (!accessToken) return false;
 
       try {
         showSyncStatus("💾 Snimanje promjena na Drive...", "info");
@@ -662,10 +714,12 @@
           lastSaveTime = Date.now();
           localStorage.setItem('last_save_time', lastSaveTime);
           showSyncStatus("✅ Promjene sačuvane na Drive", "success");
+          return true;
         }
       } catch (error) {
         showSyncStatus("❌ Greška pri snimanju", "error");
       }
+      return false;
     }
 
     async function manualSync() {
@@ -822,19 +876,7 @@
       }, 3000);
     }
 
-    // AUTOMATSKO SNIMANJE PRI IZLAZKU
-    window.addEventListener('beforeunload', async (event) => {
-      if (hasUnsavedChanges && accessToken) {
-        // Ne možemo async u beforeunload, ali možemo pokušati sync request
-        try {
-          await autoSaveToDrive();
-        } catch (error) {
-          console.log("Nije moguće sačuvati pri izlasku:", error);
-        }
-      }
-    });
-
-    // Ručna sinhronizacija ostaje ista
+    // Ručna sinhronizacija
     function manualExportImport() {
       const allData = getLocalData();
       const jsonStr = JSON.stringify(allData, null, 2);
@@ -875,7 +917,11 @@
     }
 
     // Inicijalizacija
-    window.addEventListener('load', initAuth);
+    window.addEventListener('load', () => {
+      initializeEventListeners();
+      initializeEmployees();
+      initAuth();
+    });
     
     // Service Worker
     if ("serviceWorker" in navigator) {
