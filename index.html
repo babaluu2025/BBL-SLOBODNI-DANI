@@ -437,104 +437,36 @@
     let accessToken = null;
     let pickerInited = false;
 
-    // Inicijalizacija Google API-ja
-    function initGapi() {
-      if (!window.gapi) {
-        console.error("❌ GAPI nije pronađen.");
-        return;
-      }
-
-      gapi.load("client:auth2:picker", {
-        callback: async () => {
-          try {
-            await gapi.client.init({
-              clientId: CLIENT_ID,
-              scope: SCOPES,
-            });
-            console.log("✅ GAPI i Picker inicijalizovani");
-            pickerInited = true;
-            
-            // Proveri da li je korisnik već prijavljen
-            const auth2 = gapi.auth2.getAuthInstance();
-            if (auth2.isSignedIn.get()) {
-              const user = auth2.currentUser.get();
-              accessToken = user.getAuthResponse().access_token;
-              updateUIAfterLogin(user.getBasicProfile().getEmail());
-            }
-          } catch (err) {
-            console.error("❌ GAPI greška:", err);
-          }
-        },
-        onerror: function() {
-          console.error("❌ Greška pri učitavanju GAPI");
-        }
-      });
-    }
-
-    // POBOLJŠANA Google prijava - sa loading stanjem
+    // POBOLJŠANA Google prijava - SAMO REDIRECT METODA
     async function handleAuthClick() {
       const loginBtn = document.getElementById('loginBtn');
-      const originalText = loginBtn.innerHTML;
       
       try {
         // Prikaži loading
-        loginBtn.innerHTML = '<div class="loader"></div>Prijavljujem...';
+        loginBtn.innerHTML = '<div class="loader"></div>Preusmeravam...';
         loginBtn.disabled = true;
 
-        if (!window.gapi || !window.gapi.auth2) {
-          // Ako GAPI nije spreman, koristi redirect metodu
-          await useRedirectAuth();
-          return;
-        }
-
-        const auth2 = gapi.auth2.getAuthInstance();
-        if (!auth2) {
-          throw new Error("Google Auth nije inicijalizovan");
-        }
-
-        console.log("🔐 Pokušavam prijavu...");
-        const user = await auth2.signIn();
-        accessToken = user.getAuthResponse().access_token;
-        const email = user.getBasicProfile().getEmail();
+        // KORISTI SAMO REDIRECT METODU - najpouzdanija
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+          `client_id=${CLIENT_ID}&` +
+          `redirect_uri=${encodeURIComponent(window.location.href)}&` +
+          `response_type=token&` +
+          `scope=${encodeURIComponent(SCOPES)}&` +
+          `include_granted_scopes=true&` +
+          `state=google_drive_sync`;
         
-        console.log("✅ Prijavljen kao:", email);
-        updateUIAfterLogin(email);
-        
-        // Sinhronizacija u oba smera
-        await performSync();
+        console.log("🔐 Preusmeravam na Google prijavu...");
+        window.location.href = authUrl;
         
       } catch (err) {
         console.error("❌ Greška pri prijavi:", err);
         
         // Vrati dugme u normalno stanje
-        loginBtn.innerHTML = originalText;
+        loginBtn.innerHTML = '🔑 Prijava';
         loginBtn.disabled = false;
         
-        if (err.error === "popup_closed_by_user") {
-          alert("❌ Prijava otkazana. Pokušaj ponovo i NE ZATVARAJ prozor.");
-        } else if (err.error === "access_denied") {
-          alert("❌ Pristup odbijen. Proveri da li si dodat kao test korisnik u Google Console.");
-        } else if (err.error === "idpiframe_initialization_failed") {
-          // Probaj redirect metodu
-          alert("🔄 Pokušavam alternativni način prijave...");
-          await useRedirectAuth();
-        } else {
-          alert("❌ Greška pri prijavi: " + (err.message || err.error));
-        }
+        alert("❌ Greška pri prijavi: " + err.message);
       }
-    }
-
-    // Alternativna metoda - redirect
-    async function useRedirectAuth() {
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${CLIENT_ID}&` +
-        `redirect_uri=${encodeURIComponent(window.location.origin)}&` +
-        `response_type=token&` +
-        `scope=${encodeURIComponent(SCOPES)}&` +
-        `include_granted_scopes=true&` +
-        `state=google_drive_sync`;
-      
-      window.location.href = authUrl;
     }
 
     // Proveri redirect rezultat
@@ -550,10 +482,11 @@
           
           // Prikaži uspešnu prijavu
           document.getElementById('userInfo').style.display = 'block';
-          document.getElementById('userInfo').textContent = 'Prijavljen (redirect)';
+          document.getElementById('userInfo').textContent = 'Prijavljen preko Google';
           document.getElementById('pickerBtn').style.display = 'flex';
           document.getElementById('uploadBtn').style.display = 'flex';
           document.getElementById('loginBtn').textContent = '🔄 Sinhronizuj';
+          document.getElementById('loginBtn').disabled = false;
           
           // Izvrši sinhronizaciju
           setTimeout(() => {
@@ -571,12 +504,12 @@
         // Prvo preuzmi sa Drive-a
         const restored = await restoreFromDrive();
         if (restored) {
-          alert("✅ Podaci uspešno preuzeti sa Drive-a!");
+          alert("✅ Podaci uspešno preuzeti sa Drive-a!\n\nStranica će se osvežiti.");
           location.reload();
         } else {
           // Ako nema podataka na Drive-u, otpremi trenutne
           await syncToDrive();
-          alert("💾 Kreiran novi backup na Drive-u!");
+          alert("💾 Kreiran novi backup na Drive-u!\n\nSvi podaci su sada sačuvani u oblaku.");
         }
         
       } catch (err) {
@@ -688,65 +621,10 @@
         return;
       }
 
-      if (!pickerInited) {
-        alert("🔄 Picker se još učitava... Pokušaj ponovo za par sekundi.");
-        return;
-      }
+      alert("📁 Ova opcija će uskoro biti dostupna.\n\nZa sada koristi ⬆️ Sačuvaj i 📋 Ručno dugmad.");
+      return;
 
-      try {
-        const view = new google.picker.View(google.picker.ViewId.DOCS);
-        view.setMimeTypes('application/json');
-        
-        const picker = new google.picker.PickerBuilder()
-          .setAppId(CLIENT_ID.split('-')[0])
-          .setOAuthToken(accessToken)
-          .addView(view)
-          .addView(new google.picker.DocsUploadView())
-          .setCallback(pickerCallback)
-          .setTitle('Izaberi JSON fajl sa podacima')
-          .build();
-          
-        picker.setVisible(true);
-      } catch (err) {
-        console.error("❌ Greška pri otvaranju Picker-a:", err);
-        alert("❌ Greška pri otvaranju Picker-a: " + err.message);
-      }
-    }
-
-    // Callback za Picker
-    function pickerCallback(data) {
-      if (data.action === google.picker.Action.PICKED) {
-        const fileId = data.docs[0].id;
-        downloadFile(fileId);
-      } else if (data.action === google.picker.Action.CANCEL) {
-        console.log("❌ Picker otkazan");
-      }
-    }
-
-    // Preuzimanje odabranog fajla
-    async function downloadFile(fileId) {
-      try {
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-          headers: { Authorization: "Bearer " + accessToken }
-        });
-        
-        if (!response.ok) throw new Error("Greška pri preuzimanju");
-        
-        const fileData = await response.json();
-        
-        // Restoriraj podatke u localStorage
-        for (let i = 1; i <= 50; i++) {
-          if (fileData["emp_" + i]) localStorage.setItem("emp_" + i, fileData["emp_" + i]);
-          if (fileData["emp_data_" + i]) localStorage.setItem("emp_data_" + i, fileData["emp_data_" + i]);
-        }
-        
-        alert("✅ Podaci uspešno učitani sa Drive-a!");
-        location.reload();
-        
-      } catch (err) {
-        console.error("❌ Greška pri preuzimanju fajla:", err);
-        alert("❌ Greška pri preuzimanju fajla: " + err.message);
-      }
+      // Ostatak Picker koda je privremeno onemogućen
     }
 
     // Funkcija za ručno otpremanje trenutnih podataka
@@ -822,23 +700,12 @@
       }
     }
 
-    // Auto-init GAPI kada se stranica učita + provera redirect-a
+    // Auto-init kada se stranica učita + provera redirect-a
     window.addEventListener('load', () => {
       // Prvo proveri redirect rezultat
       checkRedirectResult();
-      
-      // Onda inicijalizuj GAPI
-      const gapiCheck = setInterval(() => {
-        if (window.gapi) {
-          clearInterval(gapiCheck);
-          initGapi();
-        }
-      }, 500);
     });
   </script>
-
-  <!-- Google API -->
-  <script async defer src="https://apis.google.com/js/api.js"></script>
 
 </body>
 </html>
