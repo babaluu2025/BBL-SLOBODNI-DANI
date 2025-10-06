@@ -4,19 +4,231 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalendar zaposlenih</title>
+  
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-512.png">
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding-bottom: 80px; background: #f9f9f9; color: #333; }
-    header { background: #2563eb; color: white; text-align: center; padding: 12px; position: relative; }
-    .container { padding: 10px; }
-    .employee-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-    .employee { background: white; border-radius: 10px; padding: 12px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1); cursor: pointer; }
-    .employee input { border: none; background: transparent; text-align: center; font-size: 16px; width: 100%; outline: none; }
-    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #2563eb; color: white; display: flex; justify-content: space-around; padding: 12px; }
-    .bottom-bar button { background: white; color: #2563eb; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-weight: bold; }
-    .google-buttons { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-    .google-btn { background: #4285F4; color: white; border: none; border-radius: 8px; padding: 8px 12px; font-weight: bold; cursor: pointer; min-width: 140px; font-size: 12px; }
-    .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #4285F4; width: 20px; height: 20px; animation: spin 1s linear infinite; margin-right: 8px; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding-bottom: 80px;
+      background: #f9f9f9;
+      color: #333;
+    }
+
+    header {
+      background: #2563eb;
+      color: white;
+      text-align: center;
+      padding: 12px;
+      font-size: 20px;
+      font-weight: bold;
+      position: relative;
+    }
+
+    .container {
+      padding: 10px;
+    }
+
+    .employee-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .employee {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .employee:hover {
+      background: #eaf1ff;
+    }
+
+    .employee input {
+      border: none;
+      background: transparent;
+      text-align: center;
+      font-size: 16px;
+      width: 100%;
+      outline: none;
+    }
+
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #2563eb;
+      color: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 12px;
+      font-weight: bold;
+      z-index: 1000;
+    }
+
+    .bottom-bar button {
+      background: white;
+      color: #2563eb;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* POBOLJŠANI KALENDAR */
+    .calendar-container {
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 15px;
+    }
+
+    .month {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      break-inside: avoid;
+    }
+
+    .month h3 {
+      text-align: center;
+      margin: 0 0 15px 0;
+      background: #2563eb;
+      color: white;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .days-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 8px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+
+    .day {
+      padding: 8px 4px;
+      border-radius: 6px;
+      background: #f8f9fa;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 14px;
+      min-height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .day.free {
+      background: #34d399;
+      color: white;
+      font-weight: bold;
+    }
+
+    .day.vacation {
+      background: #60a5fa;
+      color: white;
+      font-weight: bold;
+    }
+
+    .day:hover {
+      background: #e2e8f0;
+      transform: scale(1.05);
+    }
+
+    .day.empty {
+      background: transparent;
+      cursor: default;
+    }
+
+    .day.empty:hover {
+      background: transparent;
+      transform: none;
+    }
+
+    /* Google dugmad */
+    .google-buttons {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .google-btn {
+      background: #4285F4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: bold;
+      cursor: pointer;
+      min-width: 140px;
+      font-size: 12px;
+    }
+
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 3px solid #4285F4;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .google-buttons {
+        position: static;
+        transform: none;
+        flex-direction: row;
+        justify-content: center;
+        margin-top: 10px;
+      }
+      
+      .calendar-container {
+        grid-template-columns: 1fr;
+      }
+      
+      header {
+        padding-bottom: 70px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -44,14 +256,16 @@
     let currentMode = "free";
 
     // Učitaj zaposlene
-    for (let i = 1; i <= 50; i++) {
+    for (let i = 1; i <= total; i++) {
       const div = document.createElement("div");
       div.className = "employee";
       const input = document.createElement("input");
       input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-      input.onchange = () => localStorage.setItem("emp_" + i, input.value);
+      input.addEventListener("change", () => {
+        localStorage.setItem("emp_" + i, input.value);
+      });
       div.appendChild(input);
-      div.onclick = () => openCalendar(input.value, i);
+      div.addEventListener("click", () => openCalendar(input.value, i));
       document.getElementById("employeeList").appendChild(div);
     }
 
@@ -61,24 +275,61 @@
     }
 
     function openCalendar(name, id) {
-      document.body.innerHTML = `<header>${name}</header><div class="container" id="calendar"></div>` +
-        `<div class="bottom-bar"><button onclick="location.reload()">Nazad</button></div>`;
-      
+      document.body.innerHTML = `
+        <header>${name} - Kalendar</header>
+        <div class="container">
+          <div class="calendar-container" id="calendar"></div>
+        </div>
+        <div class="bottom-bar">
+          <button onclick="location.reload()">← Nazad na listu</button>
+          <button onclick="setMode('free')">Slobodni dani</button>
+          <button onclick="setMode('vacation')">Godišnji odmor</button>
+        </div>
+      `;
+
       const now = new Date();
       const year = now.getFullYear();
       const saved = JSON.parse(localStorage.getItem("emp_data_" + id) || "{}");
       const calendar = document.getElementById("calendar");
-      const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
+      
+      const months = [
+        "Januar", "Februar", "Mart", "April", "Maj", "Jun", 
+        "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"
+      ];
+
+      const daysOfWeek = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
 
       for (let m = 0; m < 12; m++) {
         const monthDiv = document.createElement("div");
         monthDiv.className = "month";
+        
         const title = document.createElement("h3");
-        title.textContent = months[m];
+        title.textContent = `${months[m]} ${year}`;
         monthDiv.appendChild(title);
+
+        // Dodaj dane u sedmici
+        const daysHeader = document.createElement("div");
+        daysHeader.className = "days-header";
+        daysOfWeek.forEach(day => {
+          const dayEl = document.createElement("div");
+          dayEl.textContent = day;
+          daysHeader.appendChild(dayEl);
+        });
+        monthDiv.appendChild(daysHeader);
 
         const daysDiv = document.createElement("div");
         daysDiv.className = "days";
+
+        const firstDay = new Date(year, m, 1).getDay();
+        // Prilagodi za naš kalendar (Ponedjeljak = 0)
+        let startDay = firstDay === 0 ? 6 : firstDay - 1;
+
+        // Prazna polja za početak mjeseca
+        for (let i = 0; i < startDay; i++) {
+          const emptyDay = document.createElement("div");
+          emptyDay.className = "day empty";
+          daysDiv.appendChild(emptyDay);
+        }
 
         const daysInMonth = new Date(year, m + 1, 0).getDate();
         for (let d = 1; d <= daysInMonth; d++) {
@@ -90,7 +341,7 @@
           if (saved[key] === "free") day.classList.add("free");
           if (saved[key] === "vacation") day.classList.add("vacation");
 
-          day.onclick = () => {
+          day.addEventListener("click", () => {
             if (day.classList.contains(currentMode)) {
               day.classList.remove(currentMode);
               delete saved[key];
@@ -100,10 +351,11 @@
               saved[key] = currentMode;
             }
             localStorage.setItem("emp_data_" + id, JSON.stringify(saved));
-          };
+          });
 
           daysDiv.appendChild(day);
         }
+
         monthDiv.appendChild(daysDiv);
         calendar.appendChild(monthDiv);
       }
@@ -113,7 +365,7 @@
       const result = [];
       const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
 
-      for (let i = 1; i <= 50; i++) {
+      for (let i = 1; i <= total; i++) {
         const name = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
         const saved = JSON.parse(localStorage.getItem("emp_data_" + i) || "{}");
         if (!Object.keys(saved).length) continue;
@@ -138,14 +390,20 @@
           for (const m in monthlyVacation) text += `${m}: ${monthlyVacation[m]}<br>`;
           text += `</p>`;
         }
+
         result.push(text);
       }
 
-      document.body.innerHTML = `<header>Menadžer</header><div class='container'>${result.join("<hr>")}</div>` +
-        `<div class='bottom-bar'><button onclick='location.reload()'>Nazad</button></div>`;
+      document.body.innerHTML = `
+        <header>Menadžerski pregled</header>
+        <div class='container'>${result.join("<hr>")}</div>
+        <div class='bottom-bar'>
+          <button onclick='location.reload()'>← Nazad</button>
+        </div>
+      `;
     }
 
-    // 🔐 GOOGLE PRIJAVA - ISPRAVLJENO
+    // 🔐 GOOGLE PRIJAVA
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
     let accessToken = null;
 
@@ -154,7 +412,6 @@
       loginBtn.innerHTML = '<div class="loader"></div>Preusmeravam...';
       loginBtn.disabled = true;
 
-      // TAČAN REDIRECT URI - mora da odgovara Google Console
       const redirectUri = 'https://bbl-slobodni-dani.vercel.app';
       
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -168,7 +425,6 @@
       window.location.href = authUrl;
     }
 
-    // Proveri redirect rezultat
     function checkRedirectAuth() {
       const hash = window.location.hash;
       if (hash && hash.includes('access_token')) {
@@ -183,7 +439,6 @@
       }
     }
 
-    // Ručna sinhronizacija
     function manualExportImport() {
       const allData = {};
       for (let i = 1; i <= 50; i++) {
@@ -216,7 +471,15 @@
       }
     }
 
-    // Proveri prijavu pri učitavanju
+    // Service Worker za PWA
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js")
+          .then(() => console.log("✅ Service Worker registrovan"))
+          .catch(err => console.error("❌ Greška pri registraciji Service Workera:", err));
+      });
+    }
+
     window.addEventListener('load', checkRedirectAuth);
   </script>
 </body>
