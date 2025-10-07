@@ -488,6 +488,7 @@
         <button id="loginBtn" class="google-btn">🔑 Prijava</button>
         <button id="backupBtn" class="google-btn success" style="display: none;">💾 Sačuvaj</button>
         <button id="loadBtn" class="google-btn warning" style="display: none;">📂 Učitaj</button>
+        <button id="fixBtn" class="google-btn" style="background: #EF4444; display: none;">🛠️ Popravi</button>
       </div>
     </header>
 
@@ -567,6 +568,7 @@
       document.getElementById('loginBtn').addEventListener('click', handleAuthClick);
       document.getElementById('backupBtn').addEventListener('click', manualBackup);
       document.getElementById('loadBtn').addEventListener('click', manualLoad);
+      document.getElementById('fixBtn').addEventListener('click', repairAuth);
     }
 
     // Učitaj zaposlene
@@ -731,16 +733,62 @@
       setTimeout(fixPwaViewport, 100);
     }
 
-    // 🔐 POJEDNOSTAVLJENA GOOGLE SINHRONIZACIJA - SAMO MANUALNA
+    // 🔐 POBOLJŠANA GOOGLE SINHRONIZACIJA SA AUTO-REPAIR
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
     let accessToken = localStorage.getItem('google_access_token') || null;
     let userEmail = localStorage.getItem('google_user_email') || null;
 
     function initAuth() {
+      checkTokenExpiry(); // Proveri da li je token istekao
+      
       if (accessToken && userEmail) {
         updateUIAfterLogin(userEmail);
+      } else {
+        showFixButton(); // Pokaži dugme za popravku ako nije prijavljen
       }
       checkRedirectAuth();
+    }
+
+    // PROVERA ISTEKA TOKENA
+    function checkTokenExpiry() {
+      const tokenExpiry = localStorage.getItem('google_token_expiry');
+      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+        console.log("Token je istekao, brišem...");
+        localStorage.removeItem('google_access_token');
+        localStorage.removeItem('google_token_expiry');
+        localStorage.removeItem('google_user_email');
+        accessToken = null;
+        userEmail = null;
+        showFixButton();
+      }
+    }
+
+    // PRIKAŽI DIGME ZA POPRAVKU
+    function showFixButton() {
+      document.getElementById('fixBtn').style.display = 'flex';
+      document.getElementById('loginBtn').style.display = 'flex';
+      document.getElementById('loginBtn').disabled = false;
+      document.getElementById('loginBtn').textContent = '🔑 Prijava';
+      document.getElementById('userInfo').style.display = 'none';
+      document.getElementById('backupBtn').style.display = 'none';
+      document.getElementById('loadBtn').style.display = 'none';
+    }
+
+    // POPRAVI AUTH PROBLEM
+    function repairAuth() {
+      if (confirm("Želite li popraviti Google prijavu? Ovo će očistiti postojeću prijavu i tražiti novu.")) {
+        // Očisti sve postojeće podatke
+        localStorage.removeItem('google_access_token');
+        localStorage.removeItem('google_token_expiry');
+        localStorage.removeItem('google_user_email');
+        accessToken = null;
+        userEmail = null;
+        
+        showSyncStatus("🛠️ Čišćenje starih podataka...", "info");
+        setTimeout(() => {
+          handleAuthClick(); // Pokreni novu prijavu
+        }, 1000);
+      }
     }
 
     async function handleAuthClick() {
@@ -781,7 +829,11 @@
               localStorage.setItem('google_user_email', email);
               updateUIAfterLogin(email);
               showSyncStatus("✅ Uspešno prijavljen!", "success");
+              document.getElementById('fixBtn').style.display = 'none';
             }
+          }).catch(error => {
+            console.error("Greška pri dobavljanju korisničkih podataka:", error);
+            showFixButton();
           });
         }
       }
@@ -798,11 +850,13 @@
         if (response.ok) {
           const userInfo = await response.json();
           return userInfo.email;
+        } else {
+          throw new Error("Neuspešan odgovor od Google API");
         }
       } catch (error) {
         console.error("Greška pri dobavljanju korisničkih podataka:", error);
+        throw error;
       }
-      return null;
     }
 
     function updateUIAfterLogin(email) {
@@ -812,16 +866,18 @@
       document.getElementById('loginBtn').disabled = true;
       document.getElementById('backupBtn').style.display = 'flex';
       document.getElementById('loadBtn').style.display = 'flex';
+      document.getElementById('fixBtn').style.display = 'none';
     }
 
-    // MANUALNI BACKUP
+    // POBOLJŠANE FUNKCIJE SA BOLJIM ERROR HANDLING-OM
     async function manualBackup() {
       if (!accessToken) {
-        alert("❌ Niste prijavljeni!");
+        alert("❌ Niste prijavljeni! Koristite 🛠️ Popravi dugme.");
         return;
       }
 
       const backupBtn = document.getElementById('backupBtn');
+      const originalText = backupBtn.innerHTML;
       backupBtn.innerHTML = '<div class="loader"></div>Čuvam...';
       backupBtn.disabled = true;
 
@@ -829,21 +885,24 @@
         await syncToDrive();
         showSyncStatus("✅ Podaci uspešno sačuvani", "success");
       } catch (error) {
-        alert("❌ Greška pri čuvanju: " + error.message);
+        console.error("Greška pri čuvanju:", error);
+        showSyncStatus("❌ Greška pri čuvanju", "error");
+        alert("❌ Greška pri čuvanju: " + error.message + "\n\nPokušajte sa 🛠️ Popravi dugmetom.");
+        showFixButton();
       } finally {
-        backupBtn.innerHTML = '💾 Sačuvaj';
+        backupBtn.innerHTML = originalText;
         backupBtn.disabled = false;
       }
     }
 
-    // MANUALNO UČITAVANJE
     async function manualLoad() {
       if (!accessToken) {
-        alert("❌ Niste prijavljeni!");
+        alert("❌ Niste prijavljeni! Koristite 🛠️ Popravi dugme.");
         return;
       }
 
       const loadBtn = document.getElementById('loadBtn');
+      const originalText = loadBtn.innerHTML;
       loadBtn.innerHTML = '<div class="loader"></div>Učitavam...';
       loadBtn.disabled = true;
 
@@ -860,9 +919,12 @@
           setTimeout(() => location.reload(), 1000);
         }
       } catch (error) {
-        alert("❌ Greška pri učitavanju: " + error.message);
+        console.error("Greška pri učitavanju:", error);
+        showSyncStatus("❌ Greška pri učitavanju", "error");
+        alert("❌ Greška pri učitavanju: " + error.message + "\n\nPokušajte sa 🛠️ Popravi dugmetom.");
+        showFixButton();
       } finally {
-        loadBtn.innerHTML = '📂 Učitaj';
+        loadBtn.innerHTML = originalText;
         loadBtn.disabled = false;
       }
     }
@@ -887,7 +949,7 @@
         employees: {},
         calendarData: {},
         lastBackup: new Date().toISOString(),
-        appVersion: "3.0-simple"
+        appVersion: "4.0-auto-repair"
       };
 
       for (let i = 1; i <= 50; i++) {
@@ -902,7 +964,9 @@
     }
 
     async function getDriveData() {
-      if (!accessToken) return null;
+      if (!accessToken) {
+        throw new Error("Niste prijavljeni");
+      }
 
       try {
         const query = "name='kalendar_zaposlenih.json' and trashed=false";
@@ -910,7 +974,9 @@
           headers: { Authorization: "Bearer " + accessToken },
         });
         
-        if (!res.ok) return null;
+        if (!res.ok) {
+          throw new Error("Greška pri pretraživanju Drive-a: " + res.status);
+        }
         
         const data = await res.json();
         if (!data.files || data.files.length === 0) return null;
@@ -919,7 +985,7 @@
         return await downloadFile(fileId);
       } catch (error) {
         console.error("Greška pri dobavljanju podataka:", error);
-        return null;
+        throw error;
       }
     }
 
@@ -928,7 +994,9 @@
         headers: { Authorization: "Bearer " + accessToken },
       });
       
-      if (!downloadRes.ok) return null;
+      if (!downloadRes.ok) {
+        throw new Error("Greška pri preuzimanju fajla: " + downloadRes.status);
+      }
       
       return await downloadRes.json();
     }
@@ -953,7 +1021,7 @@
       });
       
       if (!searchRes.ok) {
-        throw new Error("Greška pri pretraživanju Drive-a");
+        throw new Error("Greška pri pretraživanju Drive-a: " + searchRes.status);
       }
       
       const searchData = await searchRes.json();
