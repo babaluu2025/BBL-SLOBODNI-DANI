@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="icon-512.png">
 
   <style>
-    /* ANDROID OPTIMIZOVANI STILOVI - isti kao prije */
+    /* ANDROID OPTIMIZOVANI STILOVI */
     * {
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
@@ -22,34 +22,48 @@
       box-sizing: border-box;
     }
 
-    body {
-      font-family: 'Arial', 'Helvetica', sans-serif;
+    html, body {
+      height: 100%;
       margin: 0;
       padding: 0;
-      padding-bottom: 90px;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Arial', 'Helvetica', sans-serif;
       background: #f9f9f9;
       color: #333;
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
       height: 100vh;
     }
 
     header {
       background: #2563eb;
       color: white;
-      text-align: center;
-      padding: 15px 10px;
+      padding: 12px 10px;
       font-size: 18px;
       font-weight: bold;
       position: sticky;
       top: 0;
       z-index: 1000;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      flex: 1;
+      text-align: center;
     }
 
     .container {
+      flex: 1;
+      overflow-y: auto;
       padding: 10px;
       max-width: 100%;
-      overflow-x: hidden;
     }
 
     /* OPTIMIZOVANO ZA ANDROID */
@@ -95,10 +109,6 @@
     }
 
     .bottom-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
       background: #2563eb;
       color: white;
       display: flex;
@@ -107,6 +117,7 @@
       font-weight: bold;
       z-index: 1000;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      flex-shrink: 0;
     }
 
     .bottom-bar button {
@@ -211,10 +222,6 @@
 
     /* Google dugmad - kompaktnija za mobilne */
     .google-buttons {
-      position: absolute;
-      top: 50%;
-      right: 5px;
-      transform: translateY(-50%);
       display: flex;
       flex-direction: column;
       align-items: flex-end;
@@ -287,8 +294,6 @@
     /* Responsive improvements */
     @media (max-width: 768px) {
       .google-buttons {
-        position: static;
-        transform: none;
         flex-direction: row;
         justify-content: center;
         margin-top: 10px;
@@ -302,7 +307,12 @@
       }
       
       header {
-        padding-bottom: 80px;
+        flex-direction: column;
+        padding-bottom: 10px;
+      }
+      
+      .header-title {
+        margin-bottom: 10px;
       }
       
       .employee-list {
@@ -328,30 +338,114 @@
         font-size: 12px;
         padding: 10px 5px;
       }
+      
+      .google-buttons {
+        flex-direction: column;
+        width: 100%;
+      }
+      
+      .google-btn {
+        width: 100%;
+        margin-bottom: 5px;
+      }
+    }
+    
+    /* Poboljšanja za kalendar na mobilnim uređajima */
+    .calendar-view {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #2563eb;
+      color: white;
+    }
+    
+    .calendar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    
+    /* Poboljšanja za manager view */
+    .manager-view {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .manager-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
     }
   </style>
 </head>
 <body>
   <div id="syncStatus" class="sync-status"></div>
   
-  <header>
-    Kalendar zaposlenih
-    <div class="google-buttons">
-      <div id="userInfo" class="user-info" style="display: none;"></div>
-      <button id="loginBtn" class="google-btn">🔑 Prijava</button>
-      <button id="syncBtn" class="google-btn success" style="display: none;">🔄 Sinhronizuj</button>
-      <button id="manualBtn" class="google-btn warning">📋 Ručno</button>
-    </div>
-  </header>
+  <!-- Glavni ekran -->
+  <div id="mainScreen">
+    <header>
+      <div class="header-title">Kalendar zaposlenih</div>
+      <div class="google-buttons">
+        <div id="userInfo" class="user-info" style="display: none;"></div>
+        <button id="loginBtn" class="google-btn">🔑 Prijava</button>
+        <button id="syncBtn" class="google-btn success" style="display: none;">🔄 Sinhronizuj</button>
+        <button id="manualBtn" class="google-btn warning">📋 Ručno</button>
+      </div>
+    </header>
 
-  <div class="container">
-    <div class="employee-list" id="employeeList"></div>
+    <div class="container">
+      <div class="employee-list" id="employeeList"></div>
+    </div>
+
+    <div class="bottom-bar">
+      <button id="slobodniBtn">Slobodni dani</button>
+      <button id="godisnjiBtn">Godišnji odmor</button>
+      <button id="menadzerBtn">Menadžer</button>
+    </div>
   </div>
 
-  <div class="bottom-bar">
-    <button id="slobodniBtn">Slobodni dani</button>
-    <button id="godisnjiBtn">Godišnji odmor</button>
-    <button id="menadzerBtn">Menadžer</button>
+  <!-- Kalendar ekran (sakriven inicijalno) -->
+  <div id="calendarScreen" class="calendar-view" style="display: none;">
+    <header class="calendar-header">
+      <span id="calendarTitle">Kalendar</span>
+      <div class="google-buttons">
+        <button id="backBtn" class="google-btn" style="background: #6B7280;">← Nazad</button>
+      </div>
+    </header>
+
+    <div class="calendar-content">
+      <div class="calendar-container" id="calendar"></div>
+    </div>
+
+    <div class="bottom-bar">
+      <button id="saveExitBtn">💾 Sačuvaj & Nazad</button>
+      <button id="freeBtn">Slobodni</button>
+      <button id="vacationBtn">Godišnji</button>
+    </div>
+  </div>
+
+  <!-- Menadžer ekran (sakriven inicijalno) -->
+  <div id="managerScreen" class="manager-view" style="display: none;">
+    <header class="calendar-header">
+      <span>Menadžerski pregled</span>
+      <div class="google-buttons">
+        <button id="backManagerBtn" class="google-btn" style="background: #6B7280;">← Nazad</button>
+      </div>
+    </header>
+
+    <div class="manager-content" id="managerContent"></div>
+
+    <div class="bottom-bar">
+      <button id="backMainBtn">← Nazad</button>
+    </div>
   </div>
 
   <script>
@@ -360,6 +454,7 @@
     let currentMode = "free";
     let hasUnsavedChanges = false;
     let lastSaveTime = localStorage.getItem('last_save_time') || 0;
+    let currentEmployeeId = null;
 
     // Inicijalizacija event listenera
     function initializeEventListeners() {
@@ -405,49 +500,49 @@
     }
 
     function openCalendar(name, id) {
-      document.body.innerHTML = `
-        <header>
-          <span>${name} - Kalendar</span>
-          <div class="google-buttons">
-            <button id="backBtn" class="google-btn" style="background: #6B7280;">← Nazad</button>
-          </div>
-        </header>
-        <div class="container">
-          <div class="calendar-container" id="calendar"></div>
-        </div>
-        <div class="bottom-bar">
-          <button id="saveExitBtn">💾 Sačuvaj & Nazad</button>
-          <button id="freeBtn">Slobodni</button>
-          <button id="vacationBtn">Godišnji</button>
-        </div>
-      `;
-
-      // Dodaj event listenere za kalendar dugmad
-      document.getElementById('backBtn').addEventListener('click', () => {
-        if (hasUnsavedChanges && accessToken) {
-          if (confirm("Imate nesačuvane promjene. Želite li sačuvati na Google Drive prije izlaska?")) {
-            autoSaveToDrive().finally(() => location.reload());
-          } else {
-            location.reload();
-          }
-        } else {
-          location.reload();
-        }
-      });
-
-      document.getElementById('saveExitBtn').addEventListener('click', async () => {
-        if (hasUnsavedChanges && accessToken) {
-          showSyncStatus("💾 Snimanje promjena...", "info");
-          await autoSaveToDrive();
-        }
-        location.reload();
-      });
-
-      document.getElementById('freeBtn').addEventListener('click', () => setMode('free'));
-      document.getElementById('vacationBtn').addEventListener('click', () => setMode('vacation'));
-
+      // Sakrij glavni ekran, prikaži kalendar ekran
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('calendarScreen').style.display = 'flex';
+      
+      // Postavi naslov
+      document.getElementById('calendarTitle').textContent = `${name} - Kalendar`;
+      
+      currentEmployeeId = id;
+      
       // Generiši kalendar
       generateCalendar(name, id);
+      
+      // Dodaj event listenere za kalendar dugmad
+      document.getElementById('backBtn').addEventListener('click', handleBackFromCalendar);
+      document.getElementById('saveExitBtn').addEventListener('click', handleSaveExit);
+      document.getElementById('freeBtn').addEventListener('click', () => setMode('free'));
+      document.getElementById('vacationBtn').addEventListener('click', () => setMode('vacation'));
+    }
+
+    function handleBackFromCalendar() {
+      if (hasUnsavedChanges && accessToken) {
+        if (confirm("Imate nesačuvane promjene. Želite li sačuvati na Google Drive prije izlaska?")) {
+          autoSaveToDrive().finally(() => {
+            document.getElementById('calendarScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'flex';
+          });
+        } else {
+          document.getElementById('calendarScreen').style.display = 'none';
+          document.getElementById('mainScreen').style.display = 'flex';
+        }
+      } else {
+        document.getElementById('calendarScreen').style.display = 'none';
+        document.getElementById('mainScreen').style.display = 'flex';
+      }
+    }
+
+    async function handleSaveExit() {
+      if (hasUnsavedChanges && accessToken) {
+        showSyncStatus("💾 Snimanje promjena...", "info");
+        await autoSaveToDrive();
+      }
+      document.getElementById('calendarScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'flex';
     }
 
     function generateCalendar(name, id) {
@@ -455,6 +550,7 @@
       const year = now.getFullYear();
       const saved = JSON.parse(localStorage.getItem("emp_data_" + id) || "{}");
       const calendar = document.getElementById("calendar");
+      calendar.innerHTML = '';
       
       const months = [
         "Januar", "Februar", "Mart", "April", "Maj", "Jun", 
@@ -526,6 +622,10 @@
     }
 
     function showManager() {
+      // Sakrij glavni ekran, prikaži manager ekran
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('managerScreen').style.display = 'flex';
+      
       const result = [];
       const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
 
@@ -558,24 +658,21 @@
         result.push(text);
       }
 
-      document.body.innerHTML = `
-        <header>
-          <span>Menadžerski pregled</span>
-          <div class="google-buttons">
-            <button id="backBtn" class="google-btn" style="background: #6B7280;">← Nazad</button>
-          </div>
-        </header>
-        <div class='container'>${result.join("<hr>")}</div>
-        <div class='bottom-bar'>
-          <button id="backMainBtn">← Nazad</button>
-        </div>
-      `;
-
-      document.getElementById('backBtn').addEventListener('click', () => location.reload());
-      document.getElementById('backMainBtn').addEventListener('click', () => location.reload());
+      document.getElementById('managerContent').innerHTML = result.join("<hr>");
+      
+      // Dodaj event listenere za manager dugmad
+      document.getElementById('backManagerBtn').addEventListener('click', () => {
+        document.getElementById('managerScreen').style.display = 'none';
+        document.getElementById('mainScreen').style.display = 'flex';
+      });
+      
+      document.getElementById('backMainBtn').addEventListener('click', () => {
+        document.getElementById('managerScreen').style.display = 'none';
+        document.getElementById('mainScreen').style.display = 'flex';
+      });
     }
 
-    // 🔐 PAMETNA GOOGLE SINHRONIZACIJA
+    // 🔐 POBOLJŠANA GOOGLE SINHRONIZACIJA
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
     let accessToken = localStorage.getItem('google_access_token') || null;
     let userEmail = localStorage.getItem('google_user_email') || null;
@@ -599,7 +696,7 @@
       loginBtn.innerHTML = '<div class="loader"></div>Preusmeravam...';
       loginBtn.disabled = true;
 
-      const redirectUri = 'https://bbl-slobodni-dani.vercel.app';
+      const redirectUri = window.location.origin + window.location.pathname;
       
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${CLIENT_ID}&` +
@@ -623,6 +720,7 @@
           localStorage.setItem('google_access_token', accessToken);
           localStorage.setItem('google_token_expiry', Date.now() + (expiresIn * 1000));
           
+          // Očisti URL od tokena
           window.history.replaceState({}, document.title, window.location.pathname);
           
           getUserInfo().then(email => {
@@ -666,7 +764,7 @@
       document.getElementById('syncBtn').style.display = 'flex';
     }
 
-    // PAMETNA SINHRONIZACIJA - MERGE PROMJENA
+    // POBOLJŠANA SINHRONIZACIJA - REŠENJE DUPLIKATA
     async function autoSyncOnLoad() {
       if (!accessToken) return;
 
@@ -698,6 +796,7 @@
 
       } catch (error) {
         console.error("Greška pri automatskoj sinhronizaciji:", error);
+        showSyncStatus("❌ Greška pri sinhronizaciji", "error");
       }
     }
 
@@ -717,6 +816,7 @@
           return true;
         }
       } catch (error) {
+        console.error("Greška pri automatskom snimanju:", error);
         showSyncStatus("❌ Greška pri snimanju", "error");
       }
       return false;
@@ -742,12 +842,13 @@
       }
     }
 
-    // POMOCNE FUNKCIJE ZA PAMETNU SINHRONIZACIJU
+    // POBOLJŠANE POMOĆNE FUNKCIJE ZA SINHRONIZACIJU
     function getLocalData() {
       const data = {
         employees: {},
         calendarData: {},
-        lastSync: new Date().toISOString()
+        lastSync: new Date().toISOString(),
+        appVersion: "1.0"
       };
 
       for (let i = 1; i <= 50; i++) {
@@ -764,17 +865,46 @@
     async function getDriveData() {
       if (!accessToken) return null;
 
-      const query = "name='kalendar_zaposlenih.json' and trashed=false";
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
-        headers: { Authorization: "Bearer " + accessToken },
-      });
-      
-      if (!res.ok) return null;
-      
-      const data = await res.json();
-      if (!data.files || data.files.length === 0) return null;
+      try {
+        // Prvo pronađi sve fajlove sa tim imenom
+        const query = "name='kalendar_zaposlenih.json' and trashed=false";
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
+          headers: { Authorization: "Bearer " + accessToken },
+        });
+        
+        if (!res.ok) return null;
+        
+        const data = await res.json();
+        if (!data.files || data.files.length === 0) return null;
 
-      const fileId = data.files[0].id;
+        // Ako ima više fajlova, obriši duplikate i zadrži najnoviji
+        if (data.files.length > 1) {
+          console.log("Pronađeno više fajlova, čistim duplikate...");
+          await cleanDuplicateFiles(data.files);
+          
+          // Ponovo preuzmi podatke nakon čišćenja
+          const newRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
+            headers: { Authorization: "Bearer " + accessToken },
+          });
+          
+          if (!newRes.ok) return null;
+          
+          const newData = await newRes.json();
+          if (!newData.files || newData.files.length === 0) return null;
+          
+          const fileId = newData.files[0].id;
+          return await downloadFile(fileId);
+        } else {
+          const fileId = data.files[0].id;
+          return await downloadFile(fileId);
+        }
+      } catch (error) {
+        console.error("Greška pri dobavljanju podataka sa Drive-a:", error);
+        return null;
+      }
+    }
+
+    async function downloadFile(fileId) {
       const downloadRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
         headers: { Authorization: "Bearer " + accessToken },
       });
@@ -782,6 +912,22 @@
       if (!downloadRes.ok) return null;
       
       return await downloadRes.json();
+    }
+
+    async function cleanDuplicateFiles(files) {
+      // Sortiraj fajlove po vremenu modifikacije (najnoviji prvi)
+      files.sort((a, b) => {
+        return new Date(b.modifiedTime) - new Date(a.modifiedTime);
+      });
+      
+      // Zadrži samo prvi (najnoviji) fajl, obriši ostale
+      for (let i = 1; i < files.length; i++) {
+        await fetch(`https://www.googleapis.com/drive/v3/files/${files[i].id}`, {
+          method: 'DELETE',
+          headers: { Authorization: "Bearer " + accessToken },
+        });
+        console.log(`Obrisan duplikat fajla: ${files[i].name}`);
+      }
     }
 
     async function applyDriveData(driveData) {
