@@ -2,7 +2,7 @@
 <html lang="sr" translate="no">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="google" content="notranslate">
   <meta http-equiv="Content-Language" content="sr">
   <title>Kalendar zaposlenih</title>
@@ -22,11 +22,20 @@
       box-sizing: border-box;
     }
 
+    :root {
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
+    }
+
     html, body {
       height: 100%;
       margin: 0;
       padding: 0;
       overflow: hidden;
+      position: fixed;
+      width: 100%;
     }
 
     body {
@@ -36,6 +45,11 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+      padding-top: var(--safe-area-inset-top);
+      padding-bottom: var(--safe-area-inset-bottom);
+      padding-left: var(--safe-area-inset-left);
+      padding-right: var(--safe-area-inset-right);
     }
 
     header {
@@ -66,7 +80,8 @@
       overflow-y: auto;
       padding: 10px;
       max-width: 100%;
-      padding-bottom: 80px; /* Dodaj prostor za bottom bar */
+      padding-bottom: 80px;
+      -webkit-overflow-scrolling: touch;
     }
 
     /* OPTIMIZOVANO ZA ANDROID */
@@ -126,6 +141,7 @@
       left: 0;
       right: 0;
       min-height: 70px;
+      padding-bottom: calc(12px + var(--safe-area-inset-bottom));
     }
 
     .bottom-bar button {
@@ -376,11 +392,27 @@
       }
     }
     
+    /* Poboljšanja za PWA na Androidu */
+    .pwa-fix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
     /* Poboljšanja za kalendar na mobilnim uređajima */
     .calendar-view {
       height: 100%;
       display: flex;
       flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
     }
     
     .calendar-header {
@@ -397,7 +429,8 @@
       flex: 1;
       overflow-y: auto;
       padding: 10px;
-      padding-bottom: 80px; /* Prostor za bottom bar */
+      padding-bottom: 80px;
+      -webkit-overflow-scrolling: touch;
     }
     
     /* Poboljšanja za manager view */
@@ -405,13 +438,19 @@
       height: 100%;
       display: flex;
       flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
     }
     
     .manager-content {
       flex: 1;
       overflow-y: auto;
       padding: 10px;
-      padding-bottom: 80px; /* Prostor za bottom bar */
+      padding-bottom: 80px;
+      -webkit-overflow-scrolling: touch;
     }
     
     /* Poboljšanja za glavni ekran */
@@ -419,15 +458,29 @@
       height: 100%;
       display: flex;
       flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
     }
     
     .main-content {
       flex: 1;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Fix za PWA skrolovanje */
+    .scroll-fix {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      height: 100%;
     }
   </style>
 </head>
 <body>
+  <div class="pwa-fix"></div>
   <div id="syncStatus" class="sync-status"></div>
   
   <!-- Glavni ekran -->
@@ -442,7 +495,7 @@
       </div>
     </header>
 
-    <div class="container main-content">
+    <div class="container main-content scroll-fix">
       <div class="employee-list" id="employeeList"></div>
     </div>
 
@@ -462,7 +515,7 @@
       </div>
     </header>
 
-    <div class="calendar-content">
+    <div class="calendar-content scroll-fix">
       <div class="calendar-container" id="calendar"></div>
     </div>
 
@@ -482,7 +535,7 @@
       </div>
     </header>
 
-    <div class="manager-content" id="managerContent"></div>
+    <div class="manager-content scroll-fix" id="managerContent"></div>
 
     <div class="bottom-bar">
       <button id="backMainBtn">← Nazad</button>
@@ -490,6 +543,29 @@
   </div>
 
   <script>
+    // FIX ZA PWA SKROLOVANJE NA ANDROIDU
+    function fixPwaViewport() {
+      // Prilagodi visinu za PWA
+      const setVH = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      };
+      
+      setVH();
+      window.addEventListener('resize', setVH);
+      
+      // Fix za safe areas (notch, gesture navigation)
+      if ('visualViewport' in window) {
+        const visualViewport = window.visualViewport;
+        visualViewport.addEventListener('resize', setVH);
+      }
+      
+      // Force redraw
+      setTimeout(() => {
+        document.body.style.height = window.innerHeight + 'px';
+      }, 100);
+    }
+
     // KALENDAR LOGIKA
     const total = 50;
     let currentMode = "free";
@@ -558,6 +634,9 @@
       document.getElementById('saveExitBtn').addEventListener('click', handleSaveExit);
       document.getElementById('freeBtn').addEventListener('click', () => setMode('free'));
       document.getElementById('vacationBtn').addEventListener('click', () => setMode('vacation'));
+      
+      // Fix za PWA skrolovanje
+      setTimeout(fixPwaViewport, 100);
     }
 
     function handleBackFromCalendar() {
@@ -566,14 +645,17 @@
           autoSaveToDrive().finally(() => {
             document.getElementById('calendarScreen').style.display = 'none';
             document.getElementById('mainScreen').style.display = 'flex';
+            setTimeout(fixPwaViewport, 100);
           });
         } else {
           document.getElementById('calendarScreen').style.display = 'none';
           document.getElementById('mainScreen').style.display = 'flex';
+          setTimeout(fixPwaViewport, 100);
         }
       } else {
         document.getElementById('calendarScreen').style.display = 'none';
         document.getElementById('mainScreen').style.display = 'flex';
+        setTimeout(fixPwaViewport, 100);
       }
     }
 
@@ -584,6 +666,7 @@
       }
       document.getElementById('calendarScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'flex';
+      setTimeout(fixPwaViewport, 100);
     }
 
     function generateCalendar(name, id) {
@@ -660,6 +743,14 @@
         monthDiv.appendChild(daysDiv);
         calendar.appendChild(monthDiv);
       }
+      
+      // Fix za PWA - osiguraj da se vidi ceo kalendar
+      setTimeout(() => {
+        const calendarContent = document.querySelector('.calendar-content');
+        if (calendarContent) {
+          calendarContent.scrollTop = 0;
+        }
+      }, 200);
     }
 
     function showManager() {
@@ -705,12 +796,17 @@
       document.getElementById('backManagerBtn').addEventListener('click', () => {
         document.getElementById('managerScreen').style.display = 'none';
         document.getElementById('mainScreen').style.display = 'flex';
+        setTimeout(fixPwaViewport, 100);
       });
       
       document.getElementById('backMainBtn').addEventListener('click', () => {
         document.getElementById('managerScreen').style.display = 'none';
         document.getElementById('mainScreen').style.display = 'flex';
+        setTimeout(fixPwaViewport, 100);
       });
+      
+      // Fix za PWA skrolovanje
+      setTimeout(fixPwaViewport, 100);
     }
 
     // 🔐 POBOLJŠANA GOOGLE SINHRONIZACIJA
@@ -1110,7 +1206,19 @@
       initializeEventListeners();
       initializeEmployees();
       initAuth();
+      fixPwaViewport(); // Pokreni PWA fix
+      
+      // Dodatni fix za PWA
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+      }, 500);
     });
+    
+    // Dodatni event listeneri za PWA
+    window.addEventListener('orientationchange', fixPwaViewport);
+    window.addEventListener('resize', fixPwaViewport);
     
     // Service Worker
     if ("serviceWorker" in navigator) {
