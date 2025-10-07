@@ -486,8 +486,8 @@
       <div class="google-buttons">
         <div id="userInfo" class="user-info" style="display: none;"></div>
         <button id="loginBtn" class="google-btn">🔑 Prijava</button>
-        <button id="backupBtn" class="google-btn success" style="display: none;">💾 Backup</button>
-        <button id="manualBtn" class="google-btn warning">📋 Ručno</button>
+        <button id="backupBtn" class="google-btn success" style="display: none;">💾 Sačuvaj</button>
+        <button id="loadBtn" class="google-btn warning" style="display: none;">📂 Učitaj</button>
       </div>
     </header>
 
@@ -557,7 +557,6 @@
     // KALENDAR LOGIKA
     const total = 50;
     let currentMode = "free";
-    let hasUnsavedChanges = false;
     let currentEmployeeId = null;
 
     // Inicijalizacija event listenera
@@ -567,13 +566,7 @@
       document.getElementById('menadzerBtn').addEventListener('click', showManager);
       document.getElementById('loginBtn').addEventListener('click', handleAuthClick);
       document.getElementById('backupBtn').addEventListener('click', manualBackup);
-      document.getElementById('manualBtn').addEventListener('click', manualExportImport);
-    }
-
-    // Praćenje promjena - POJEDNOSTAVLJENO
-    function markChangesMade() {
-      hasUnsavedChanges = true;
-      localStorage.setItem('has_unsaved_changes', 'true');
+      document.getElementById('loadBtn').addEventListener('click', manualLoad);
     }
 
     // Učitaj zaposlene
@@ -588,7 +581,6 @@
         input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
         input.addEventListener("input", () => {
           localStorage.setItem("emp_" + i, input.value);
-          markChangesMade();
         });
         div.appendChild(input);
         div.addEventListener("click", () => openCalendar(input.value, i));
@@ -607,26 +599,12 @@
       currentEmployeeId = id;
       generateCalendar(name, id);
       
-      document.getElementById('backBtn').addEventListener('click', handleBackFromCalendar);
-      document.getElementById('saveExitBtn').addEventListener('click', handleSaveExit);
+      document.getElementById('backBtn').addEventListener('click', showMainScreen);
+      document.getElementById('saveExitBtn').addEventListener('click', showMainScreen);
       document.getElementById('freeBtn').addEventListener('click', () => setMode('free'));
       document.getElementById('vacationBtn').addEventListener('click', () => setMode('vacation'));
       
       setTimeout(fixPwaViewport, 100);
-    }
-
-    function handleBackFromCalendar() {
-      if (hasUnsavedChanges && accessToken) {
-        if (confirm("Imate nesačuvane promjene. Želite li sačuvati backup na Google Drive prije izlaska?")) {
-          manualBackup().finally(() => {
-            showMainScreen();
-          });
-        } else {
-          showMainScreen();
-        }
-      } else {
-        showMainScreen();
-      }
     }
 
     function showMainScreen() {
@@ -634,14 +612,6 @@
       document.getElementById('managerScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'flex';
       setTimeout(fixPwaViewport, 100);
-    }
-
-    async function handleSaveExit() {
-      if (hasUnsavedChanges && accessToken) {
-        showSyncStatus("💾 Pravim backup...", "info");
-        await manualBackup();
-      }
-      showMainScreen();
     }
 
     function generateCalendar(name, id) {
@@ -707,7 +677,6 @@
               saved[key] = currentMode;
             }
             localStorage.setItem("emp_data_" + id, JSON.stringify(saved));
-            markChangesMade();
           });
 
           daysDiv.appendChild(day);
@@ -762,7 +731,7 @@
       setTimeout(fixPwaViewport, 100);
     }
 
-    // 🔐 POJEDNOSTAVLJENA GOOGLE SINHRONIZACIJA - SAMO BACKUP
+    // 🔐 POJEDNOSTAVLJENA GOOGLE SINHRONIZACIJA - SAMO MANUALNA
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
     let accessToken = localStorage.getItem('google_access_token') || null;
     let userEmail = localStorage.getItem('google_user_email') || null;
@@ -770,10 +739,6 @@
     function initAuth() {
       if (accessToken && userEmail) {
         updateUIAfterLogin(userEmail);
-        // AUTOMATSKA SINHRONIZACIJA PRI ULAZKU
-        setTimeout(() => {
-          autoSyncOnLoad();
-        }, 2000);
       }
       checkRedirectAuth();
     }
@@ -815,11 +780,7 @@
               userEmail = email;
               localStorage.setItem('google_user_email', email);
               updateUIAfterLogin(email);
-              showSyncStatus("✅ Uspešno prijavljen! Pravim backup...", "success");
-              // AUTOMATSKA SINHRONIZACIJA NAKON PRIJAVE
-              setTimeout(() => {
-                autoSyncOnLoad();
-              }, 1500);
+              showSyncStatus("✅ Uspešno prijavljen!", "success");
             }
           });
         }
@@ -850,31 +811,7 @@
       document.getElementById('loginBtn').textContent = '✅ Prijavljen';
       document.getElementById('loginBtn').disabled = true;
       document.getElementById('backupBtn').style.display = 'flex';
-    }
-
-    // AUTOMATSKA SINHRONIZACIJA SAMO PRI ULAZKU
-    async function autoSyncOnLoad() {
-      if (!accessToken) return;
-
-      try {
-        showSyncStatus("🔍 Učitavam backup...", "info");
-        
-        const driveData = await getDriveData();
-        if (!driveData) {
-          showSyncStatus("ℹ️ Nema backup-a, pravim novi...", "info");
-          await manualBackup();
-          return;
-        }
-
-        // UVIJEK PREUZMI PODATKE SA DRIVE-A PRI ULAZKU
-        await applyDriveData(driveData);
-        showSyncStatus("✅ Backup uspešno učitavan", "success");
-        setTimeout(() => location.reload(), 1000);
-
-      } catch (error) {
-        console.error("Greška pri automatskom učitavanju:", error);
-        showSyncStatus("❌ Greška pri učitavanju backup-a", "error");
-      }
+      document.getElementById('loadBtn').style.display = 'flex';
     }
 
     // MANUALNI BACKUP
@@ -885,19 +822,48 @@
       }
 
       const backupBtn = document.getElementById('backupBtn');
-      backupBtn.innerHTML = '<div class="loader"></div>Backup...';
+      backupBtn.innerHTML = '<div class="loader"></div>Čuvam...';
       backupBtn.disabled = true;
 
       try {
         await syncToDrive();
-        hasUnsavedChanges = false;
-        localStorage.removeItem('has_unsaved_changes');
-        showSyncStatus("✅ Backup uspešno sačuvan", "success");
+        showSyncStatus("✅ Podaci uspešno sačuvani", "success");
       } catch (error) {
-        alert("❌ Greška pri backup-u: " + error.message);
+        alert("❌ Greška pri čuvanju: " + error.message);
       } finally {
-        backupBtn.innerHTML = '💾 Backup';
+        backupBtn.innerHTML = '💾 Sačuvaj';
         backupBtn.disabled = false;
+      }
+    }
+
+    // MANUALNO UČITAVANJE
+    async function manualLoad() {
+      if (!accessToken) {
+        alert("❌ Niste prijavljeni!");
+        return;
+      }
+
+      const loadBtn = document.getElementById('loadBtn');
+      loadBtn.innerHTML = '<div class="loader"></div>Učitavam...';
+      loadBtn.disabled = true;
+
+      try {
+        const driveData = await getDriveData();
+        if (!driveData) {
+          alert("ℹ️ Nema sačuvanih podataka na Drive-u!");
+          return;
+        }
+
+        if (confirm("Želite li učitati podatke sa Drive-a? Ovo će zameniti trenutne podatke.")) {
+          await applyDriveData(driveData);
+          showSyncStatus("✅ Podaci uspešno učitani", "success");
+          setTimeout(() => location.reload(), 1000);
+        }
+      } catch (error) {
+        alert("❌ Greška pri učitavanju: " + error.message);
+      } finally {
+        loadBtn.innerHTML = '📂 Učitaj';
+        loadBtn.disabled = false;
       }
     }
 
@@ -905,19 +871,14 @@
     async function applyDriveData(driveData) {
       if (!driveData) return;
 
-      let importedCount = 0;
       for (let i = 1; i <= 50; i++) {
         if (driveData.employees && driveData.employees[i]) {
           localStorage.setItem("emp_" + i, driveData.employees[i]);
-          importedCount++;
         }
         if (driveData.calendarData && driveData.calendarData[i]) {
           localStorage.setItem("emp_data_" + i, JSON.stringify(driveData.calendarData[i]));
-          importedCount++;
         }
       }
-      
-      return importedCount > 0;
     }
 
     // POMOĆNE FUNKCIJE ZA BACKUP
@@ -926,7 +887,7 @@
         employees: {},
         calendarData: {},
         lastBackup: new Date().toISOString(),
-        appVersion: "2.0-simple"
+        appVersion: "3.0-simple"
       };
 
       for (let i = 1; i <= 50; i++) {
@@ -954,11 +915,10 @@
         const data = await res.json();
         if (!data.files || data.files.length === 0) return null;
 
-        // Uvijek koristi najnoviji fajl
         const fileId = data.files[0].id;
         return await downloadFile(fileId);
       } catch (error) {
-        console.error("Greška pri dobavljanju backup-a:", error);
+        console.error("Greška pri dobavljanju podataka:", error);
         return null;
       }
     }
@@ -1044,46 +1004,6 @@
       }, 3000);
     }
 
-    // Ručna sinhronizacija
-    function manualExportImport() {
-      const allData = getLocalData();
-      const jsonStr = JSON.stringify(allData, null, 2);
-      
-      const choice = confirm("📋 RUČNA SINHRONIZACIJA\n\nOK: Kopiraj podatke\nOtkaži: Nalepi podatke");
-      
-      if (choice) {
-        navigator.clipboard.writeText(jsonStr).then(() => {
-          alert("✅ PODACI KOPIRANI!\n\nNalepite u Google Drive fajl 'kalendar_zaposlenih.json'");
-        }).catch(() => {
-          prompt("📋 Kopirajte ove podatke:", jsonStr);
-        });
-      } else {
-        const imported = prompt("📥 Nalepite JSON podatke ovde:");
-        if (imported) {
-          try {
-            const data = JSON.parse(imported);
-            let importedCount = 0;
-            
-            for (let i = 1; i <= 50; i++) {
-              if (data.employees && data.employees[i]) {
-                localStorage.setItem("emp_" + i, data.employees[i]);
-                importedCount++;
-              }
-              if (data.calendarData && data.calendarData[i]) {
-                localStorage.setItem("emp_data_" + i, JSON.stringify(data.calendarData[i]));
-                importedCount++;
-              }
-            }
-            
-            alert(`✅ Podaci učitani! (${importedCount} zapisa)`);
-            location.reload();
-          } catch (err) {
-            alert("❌ Nevažeći JSON format!");
-          }
-        }
-      }
-    }
-
     // Inicijalizacija
     window.addEventListener('load', () => {
       initializeEventListeners();
@@ -1094,14 +1014,6 @@
       setTimeout(() => {
         window.scrollTo(0, 0);
       }, 500);
-    });
-    
-    // AUTOMATSKA SINHRONIZACIJA PRI IZLAZKU
-    window.addEventListener('beforeunload', (event) => {
-      if (hasUnsavedChanges && accessToken) {
-        // Asinhrono sačuvaj promjene pri izlasku
-        syncToDrive().catch(console.error);
-      }
     });
     
     window.addEventListener('orientationchange', fixPwaViewport);
