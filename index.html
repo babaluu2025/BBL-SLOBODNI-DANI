@@ -25,8 +25,6 @@
     :root {
       --safe-area-inset-top: env(safe-area-inset-top);
       --safe-area-inset-bottom: env(safe-area-inset-bottom);
-      --safe-area-inset-left: env(safe-area-inset-left);
-      --safe-area-inset-right: env(safe-area-inset-right);
     }
 
     html, body {
@@ -48,8 +46,6 @@
       height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
       padding-top: var(--safe-area-inset-top);
       padding-bottom: var(--safe-area-inset-bottom);
-      padding-left: var(--safe-area-inset-left);
-      padding-right: var(--safe-area-inset-right);
     }
 
     header {
@@ -490,7 +486,7 @@
       <div class="google-buttons">
         <div id="userInfo" class="user-info" style="display: none;"></div>
         <button id="loginBtn" class="google-btn">🔑 Prijava</button>
-        <button id="syncBtn" class="google-btn success" style="display: none;">🔄 Sinhronizuj</button>
+        <button id="backupBtn" class="google-btn success" style="display: none;">💾 Backup</button>
         <button id="manualBtn" class="google-btn warning">📋 Ručno</button>
       </div>
     </header>
@@ -562,7 +558,6 @@
     const total = 50;
     let currentMode = "free";
     let hasUnsavedChanges = false;
-    let lastSaveTime = parseInt(localStorage.getItem('last_save_time')) || 0;
     let currentEmployeeId = null;
 
     // Inicijalizacija event listenera
@@ -571,22 +566,14 @@
       document.getElementById('godisnjiBtn').addEventListener('click', () => setMode('vacation'));
       document.getElementById('menadzerBtn').addEventListener('click', showManager);
       document.getElementById('loginBtn').addEventListener('click', handleAuthClick);
-      document.getElementById('syncBtn').addEventListener('click', manualSync);
+      document.getElementById('backupBtn').addEventListener('click', manualBackup);
       document.getElementById('manualBtn').addEventListener('click', manualExportImport);
     }
 
-    // Praćenje promjena - POBOLJŠANO
+    // Praćenje promjena - POJEDNOSTAVLJENO
     function markChangesMade() {
       hasUnsavedChanges = true;
       localStorage.setItem('has_unsaved_changes', 'true');
-      localStorage.setItem('last_change_time', Date.now().toString());
-      
-      // Automatski sačuvaj na Drive ako je prijavljen
-      if (accessToken) {
-        setTimeout(() => {
-          autoSaveToDrive();
-        }, 2000); // Sačuvaj nakon 2 sekunde
-      }
     }
 
     // Učitaj zaposlene
@@ -630,8 +617,8 @@
 
     function handleBackFromCalendar() {
       if (hasUnsavedChanges && accessToken) {
-        if (confirm("Imate nesačuvane promjene. Želite li sačuvati na Google Drive prije izlaska?")) {
-          autoSaveToDrive().finally(() => {
+        if (confirm("Imate nesačuvane promjene. Želite li sačuvati backup na Google Drive prije izlaska?")) {
+          manualBackup().finally(() => {
             showMainScreen();
           });
         } else {
@@ -651,8 +638,8 @@
 
     async function handleSaveExit() {
       if (hasUnsavedChanges && accessToken) {
-        showSyncStatus("💾 Snimanje promjena...", "info");
-        await autoSaveToDrive();
+        showSyncStatus("💾 Pravim backup...", "info");
+        await manualBackup();
       }
       showMainScreen();
     }
@@ -775,7 +762,7 @@
       setTimeout(fixPwaViewport, 100);
     }
 
-    // 🔐 POBOLJŠANA GOOGLE SINHRONIZACIJA
+    // 🔐 POJEDNOSTAVLJENA GOOGLE SINHRONIZACIJA - SAMO BACKUP
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
     let accessToken = localStorage.getItem('google_access_token') || null;
     let userEmail = localStorage.getItem('google_user_email') || null;
@@ -783,14 +770,12 @@
     function initAuth() {
       if (accessToken && userEmail) {
         updateUIAfterLogin(userEmail);
-      }
-      checkRedirectAuth();
-      
-      if (accessToken) {
+        // AUTOMATSKA SINHRONIZACIJA PRI ULAZKU
         setTimeout(() => {
           autoSyncOnLoad();
         }, 2000);
       }
+      checkRedirectAuth();
     }
 
     async function handleAuthClick() {
@@ -830,7 +815,8 @@
               userEmail = email;
               localStorage.setItem('google_user_email', email);
               updateUIAfterLogin(email);
-              showSyncStatus("✅ Uspešno prijavljen! Sinhronizujem...", "success");
+              showSyncStatus("✅ Uspešno prijavljen! Pravim backup...", "success");
+              // AUTOMATSKA SINHRONIZACIJA NAKON PRIJAVE
               setTimeout(() => {
                 autoSyncOnLoad();
               }, 1500);
@@ -863,163 +849,84 @@
       document.getElementById('userInfo').textContent = `Prijavljen: ${email.substring(0, 15)}...`;
       document.getElementById('loginBtn').textContent = '✅ Prijavljen';
       document.getElementById('loginBtn').disabled = true;
-      document.getElementById('syncBtn').style.display = 'flex';
+      document.getElementById('backupBtn').style.display = 'flex';
     }
 
-    // POBOLJŠANA SINHRONIZACIJA - MERGE LOGIKA
+    // AUTOMATSKA SINHRONIZACIJA SAMO PRI ULAZKU
     async function autoSyncOnLoad() {
       if (!accessToken) return;
 
       try {
-        showSyncStatus("🔍 Proveravam nove promjene...", "info");
+        showSyncStatus("🔍 Učitavam backup...", "info");
         
         const driveData = await getDriveData();
         if (!driveData) {
-          await autoSaveToDrive();
+          showSyncStatus("ℹ️ Nema backup-a, pravim novi...", "info");
+          await manualBackup();
           return;
         }
 
-        const localData = getLocalData();
-        const driveTime = driveData.lastSync ? new Date(driveData.lastSync).getTime() : 0;
-        const localTime = lastSaveTime;
-
-        console.log("Drive time:", driveTime, "Local time:", localTime);
-
-        if (driveTime > localTime) {
-          // MERGE LOGIKA - POBOLJŠANO
-          await mergeData(driveData, localData);
-          showSyncStatus("✅ Podaci uspešno sinhronizovani", "success");
-          setTimeout(() => location.reload(), 1000);
-        } else if (driveTime < localTime) {
-          await autoSaveToDrive();
-        } else {
-          showSyncStatus("✅ Podaci su ažurni", "success");
-        }
+        // UVIJEK PREUZMI PODATKE SA DRIVE-A PRI ULAZKU
+        await applyDriveData(driveData);
+        showSyncStatus("✅ Backup uspešno učitavan", "success");
+        setTimeout(() => location.reload(), 1000);
 
       } catch (error) {
-        console.error("Greška pri automatskoj sinhronizaciji:", error);
-        showSyncStatus("❌ Greška pri sinhronizaciji", "error");
+        console.error("Greška pri automatskom učitavanju:", error);
+        showSyncStatus("❌ Greška pri učitavanju backup-a", "error");
       }
     }
 
-    // NOVA MERGE FUNKCIJA - PAMETNO SPAAJANJE PODATAKA
-    async function mergeData(driveData, localData) {
-      let changesMade = false;
-      
-      // Proveri imena zaposlenih
-      for (let i = 1; i <= 50; i++) {
-        const driveName = driveData.employees && driveData.employees[i];
-        const localName = localData.employees && localData.employees[i];
-        const currentName = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-        
-        // Ako se imena razlikuju, zadrži ono koje nije default
-        if (driveName && driveName !== currentName && driveName !== "Zaposleni " + i) {
-          localStorage.setItem("emp_" + i, driveName);
-          changesMade = true;
-        }
-      }
-
-      // Proveri kalendar podatke - PAMETNI MERGE
-      for (let i = 1; i <= 50; i++) {
-        const driveCalendar = driveData.calendarData && driveData.calendarData[i];
-        const localCalendar = localData.calendarData && localData.calendarData[i];
-        const currentCalendar = JSON.parse(localStorage.getItem("emp_data_" + i) || "{}");
-        
-        if (driveCalendar) {
-          const mergedCalendar = { ...currentCalendar };
-          let calendarChanged = false;
-          
-          // Dodaj sve iz drive-a koji nisu u local
-          for (const key in driveCalendar) {
-            if (!(key in currentCalendar)) {
-              mergedCalendar[key] = driveCalendar[key];
-              calendarChanged = true;
-            }
-          }
-          
-          // Zadrži sve iz local koji nisu u drive
-          for (const key in currentCalendar) {
-            if (!(key in driveCalendar)) {
-              mergedCalendar[key] = currentCalendar[key];
-              calendarChanged = true;
-            }
-          }
-          
-          // Ako postoje konflikti, zadrži noviju verziju
-          for (const key in driveCalendar) {
-            if (key in currentCalendar && driveCalendar[key] !== currentCalendar[key]) {
-              // Konflikt - zadrži drive verziju jer je verovatno novija
-              mergedCalendar[key] = driveCalendar[key];
-              calendarChanged = true;
-            }
-          }
-          
-          if (calendarChanged) {
-            localStorage.setItem("emp_data_" + i, JSON.stringify(mergedCalendar));
-            changesMade = true;
-          }
-        }
-      }
-
-      // Ažuriraj last save time
-      if (changesMade) {
-        lastSaveTime = Math.max(driveData.lastSync ? new Date(driveData.lastSync).getTime() : 0, lastSaveTime);
-        localStorage.setItem('last_save_time', lastSaveTime.toString());
-      }
-      
-      return changesMade;
-    }
-
-    async function autoSaveToDrive() {
-      if (!accessToken) return false;
-
-      try {
-        showSyncStatus("💾 Snimanje promjena na Drive...", "info");
-        
-        const success = await syncToDrive();
-        if (success) {
-          hasUnsavedChanges = false;
-          localStorage.removeItem('has_unsaved_changes');
-          lastSaveTime = Date.now();
-          localStorage.setItem('last_save_time', lastSaveTime.toString());
-          showSyncStatus("✅ Promjene sačuvane na Drive", "success");
-          return true;
-        }
-      } catch (error) {
-        console.error("Greška pri automatskom snimanju:", error);
-        showSyncStatus("❌ Greška pri snimanju", "error");
-      }
-      return false;
-    }
-
-    async function manualSync() {
+    // MANUALNI BACKUP
+    async function manualBackup() {
       if (!accessToken) {
         alert("❌ Niste prijavljeni!");
         return;
       }
 
-      const syncBtn = document.getElementById('syncBtn');
-      syncBtn.innerHTML = '<div class="loader"></div>Sinhronizujem...';
-      syncBtn.disabled = true;
+      const backupBtn = document.getElementById('backupBtn');
+      backupBtn.innerHTML = '<div class="loader"></div>Backup...';
+      backupBtn.disabled = true;
 
       try {
-        await autoSyncOnLoad();
+        await syncToDrive();
+        hasUnsavedChanges = false;
+        localStorage.removeItem('has_unsaved_changes');
+        showSyncStatus("✅ Backup uspešno sačuvan", "success");
       } catch (error) {
-        alert("❌ Greška pri sinhronizaciji: " + error.message);
+        alert("❌ Greška pri backup-u: " + error.message);
       } finally {
-        syncBtn.innerHTML = '🔄 Sinhronizuj';
-        syncBtn.disabled = false;
+        backupBtn.innerHTML = '💾 Backup';
+        backupBtn.disabled = false;
       }
     }
 
-    // POMOĆNE FUNKCIJE ZA SINHRONIZACIJU
+    // PRIMJENI PODATKE SA DRIVE-A
+    async function applyDriveData(driveData) {
+      if (!driveData) return;
+
+      let importedCount = 0;
+      for (let i = 1; i <= 50; i++) {
+        if (driveData.employees && driveData.employees[i]) {
+          localStorage.setItem("emp_" + i, driveData.employees[i]);
+          importedCount++;
+        }
+        if (driveData.calendarData && driveData.calendarData[i]) {
+          localStorage.setItem("emp_data_" + i, JSON.stringify(driveData.calendarData[i]));
+          importedCount++;
+        }
+      }
+      
+      return importedCount > 0;
+    }
+
+    // POMOĆNE FUNKCIJE ZA BACKUP
     function getLocalData() {
       const data = {
         employees: {},
         calendarData: {},
-        lastSync: new Date().toISOString(),
-        appVersion: "2.0",
-        deviceId: localStorage.getItem('device_id') || generateDeviceId()
+        lastBackup: new Date().toISOString(),
+        appVersion: "2.0-simple"
       };
 
       for (let i = 1; i <= 50; i++) {
@@ -1031,12 +938,6 @@
       }
 
       return data;
-    }
-
-    function generateDeviceId() {
-      const deviceId = 'device_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('device_id', deviceId);
-      return deviceId;
     }
 
     async function getDriveData() {
@@ -1053,27 +954,11 @@
         const data = await res.json();
         if (!data.files || data.files.length === 0) return null;
 
-        if (data.files.length > 1) {
-          console.log("Pronađeno više fajlova, čistim duplikate...");
-          await cleanDuplicateFiles(data.files);
-          
-          const newRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`, {
-            headers: { Authorization: "Bearer " + accessToken },
-          });
-          
-          if (!newRes.ok) return null;
-          
-          const newData = await newRes.json();
-          if (!newData.files || newData.files.length === 0) return null;
-          
-          const fileId = newData.files[0].id;
-          return await downloadFile(fileId);
-        } else {
-          const fileId = data.files[0].id;
-          return await downloadFile(fileId);
-        }
+        // Uvijek koristi najnoviji fajl
+        const fileId = data.files[0].id;
+        return await downloadFile(fileId);
       } catch (error) {
-        console.error("Greška pri dobavljanju podataka sa Drive-a:", error);
+        console.error("Greška pri dobavljanju backup-a:", error);
         return null;
       }
     }
@@ -1086,19 +971,6 @@
       if (!downloadRes.ok) return null;
       
       return await downloadRes.json();
-    }
-
-    async function cleanDuplicateFiles(files) {
-      files.sort((a, b) => {
-        return new Date(b.modifiedTime) - new Date(a.modifiedTime);
-      });
-      
-      for (let i = 1; i < files.length; i++) {
-        await fetch(`https://www.googleapis.com/drive/v3/files/${files[i].id}`, {
-          method: 'DELETE',
-          headers: { Authorization: "Bearer " + accessToken },
-        });
-      }
     }
 
     async function syncToDrive() {
@@ -1222,6 +1094,14 @@
       setTimeout(() => {
         window.scrollTo(0, 0);
       }, 500);
+    });
+    
+    // AUTOMATSKA SINHRONIZACIJA PRI IZLAZKU
+    window.addEventListener('beforeunload', (event) => {
+      if (hasUnsavedChanges && accessToken) {
+        // Asinhrono sačuvaj promjene pri izlasku
+        syncToDrive().catch(console.error);
+      }
     });
     
     window.addEventListener('orientationchange', fixPwaViewport);
