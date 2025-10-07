@@ -696,7 +696,8 @@
       loginBtn.innerHTML = '<div class="loader"></div>Preusmeravam...';
       loginBtn.disabled = true;
 
-      const redirectUri = window.location.origin + window.location.pathname;
+      // KORISTIMO TAČAN REDIRECT URI KOJI JE REGISTROVAN U GOOGLE KONZOLI
+      const redirectUri = 'https://bbl-slobodni-dani.vercel.app';
       
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${CLIENT_ID}&` +
@@ -704,6 +705,7 @@
         `response_type=token&` +
         `scope=https://www.googleapis.com/auth/drive.file&` +
         `include_granted_scopes=true&` +
+        `state=kalendar_app&` +
         `prompt=consent`;
       
       window.location.href = authUrl;
@@ -758,7 +760,7 @@
 
     function updateUIAfterLogin(email) {
       document.getElementById('userInfo').style.display = 'block';
-      document.getElementById('userInfo').textContent = `Prijavljen: ${email}`;
+      document.getElementById('userInfo').textContent = `Prijavljen: ${email.substring(0, 15)}...`;
       document.getElementById('loginBtn').textContent = '✅ Prijavljen';
       document.getElementById('loginBtn').disabled = true;
       document.getElementById('syncBtn').style.display = 'flex';
