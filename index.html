@@ -7,6 +7,21 @@
   <meta http-equiv="Content-Language" content="sr">
   <title>Kalendar zaposlenih</title>
   
+  <!-- PWA META TAGOVI -->
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kalendar zaposlenih">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileColor" content="#2563eb">
+  <meta name="msapplication-tap-highlight" content="no">
+  
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="apple-touch-icon" href="icon-512.png">
+  
   <style>
     /* ANDROID OPTIMIZOVANI STILOVI */
     * {
@@ -29,6 +44,7 @@
       overflow: hidden;
       position: fixed;
       width: 100%;
+      background: #f9f9f9;
     }
 
     body {
@@ -41,6 +57,7 @@
       height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
       padding-top: var(--safe-area-inset-top);
       padding-bottom: var(--safe-area-inset-bottom);
+      touch-action: pan-y pinch-zoom;
     }
 
     header {
@@ -73,6 +90,7 @@
       max-width: 100%;
       padding-bottom: 80px;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
 
     /* SEKTORI ZAPOSLENIH */
@@ -498,6 +516,65 @@
       color: white;
     }
 
+    /* Install PWA button */
+    .install-btn {
+      background: #10B981;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+      margin-left: 5px;
+      display: none;
+    }
+
+    /* PWA Install Prompt */
+    .pwa-install-prompt {
+      position: fixed;
+      bottom: 80px;
+      left: 10px;
+      right: 10px;
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+      z-index: 1001;
+      display: none;
+      border: 2px solid #2563eb;
+    }
+
+    .pwa-install-prompt p {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .pwa-install-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .pwa-install-buttons button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .pwa-install-confirm {
+      background: #10B981;
+      color: white;
+    }
+
+    .pwa-install-cancel {
+      background: #6B7280;
+      color: white;
+    }
+
     /* Responsive improvements */
     @media (max-width: 768px) {
       .google-buttons {
@@ -720,6 +797,15 @@
   <div class="pwa-fix"></div>
   <div id="syncStatus" class="sync-status"></div>
   
+  <!-- PWA Install Prompt -->
+  <div id="pwaInstallPrompt" class="pwa-install-prompt">
+    <p>📱 Želite li instalirati aplikaciju na svoj uređaj?</p>
+    <div class="pwa-install-buttons">
+      <button id="pwaInstallCancel" class="pwa-install-cancel">Ne sada</button>
+      <button id="pwaInstallConfirm" class="pwa-install-confirm">Instaliraj</button>
+    </div>
+  </div>
+  
   <!-- Glavni ekran -->
   <div id="mainScreen" class="main-view">
     <header>
@@ -731,6 +817,7 @@
         <button id="loadBtn" class="google-btn warning" style="display: none;">📂 Učitaj</button>
         <button id="fixBtn" class="google-btn" style="background: #EF4444; display: none;">🛠️ Popravi</button>
         <button id="manualBackupBtn" class="google-btn" style="background: #8B5CF6;">📋 Ručni Backup</button>
+        <button id="installBtn" class="install-btn">📱 Instaliraj</button>
       </div>
     </header>
 
@@ -827,6 +914,98 @@
   </div>
 
   <script>
+    // PWA VARIJABLE
+    let deferredPrompt;
+    let isAppInstalled = false;
+
+    // PWA FUNKCIJE
+    function initializePWA() {
+      // Proveri da li je aplikacija već instalirana
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        isAppInstalled = true;
+        document.getElementById('installBtn').style.display = 'none';
+      }
+
+      // Listen for beforeinstallprompt event
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        // Show install button
+        document.getElementById('installBtn').style.display = 'flex';
+        
+        // Automatski pokaži prompt nakon 3 sekunde
+        setTimeout(() => {
+          if (!isAppInstalled && deferredPrompt) {
+            showInstallPrompt();
+          }
+        }, 3000);
+      });
+
+      // Listen for app installed event
+      window.addEventListener('appinstalled', () => {
+        isAppInstalled = true;
+        document.getElementById('installBtn').style.display = 'none';
+        document.getElementById('pwaInstallPrompt').style.display = 'none';
+        showSyncStatus('✅ Aplikacija uspešno instalirana!', 'success');
+      });
+
+      // Proveri display mode promene
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          isAppInstalled = true;
+          document.getElementById('installBtn').style.display = 'none';
+        }
+      });
+    }
+
+    function showInstallPrompt() {
+      const prompt = document.getElementById('pwaInstallPrompt');
+      prompt.style.display = 'block';
+      
+      document.getElementById('pwaInstallConfirm').onclick = installPWA;
+      document.getElementById('pwaInstallCancel').onclick = () => {
+        prompt.style.display = 'none';
+      };
+    }
+
+    function installPWA() {
+      if (!deferredPrompt) {
+        alert('Instalacija nije dostupna. Pokušajte ponovo kasnije.');
+        return;
+      }
+
+      // Show the install prompt
+      deferredPrompt.prompt();
+      
+      // Wait for the user to respond to the prompt
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('Korisnik je prihvatio instalaciju');
+          isAppInstalled = true;
+          document.getElementById('installBtn').style.display = 'none';
+        } else {
+          console.log('Korisnik je odbio instalaciju');
+        }
+        deferredPrompt = null;
+        document.getElementById('pwaInstallPrompt').style.display = 'none';
+      });
+    }
+
+    // SERVICE WORKER REGISTRACIJA
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+          .then((registration) => {
+            console.log('✅ Service Worker registrovan:', registration);
+          })
+          .catch((error) => {
+            console.log('❌ Greška pri registraciji Service Workera:', error);
+          });
+      }
+    }
+
     // KONFIGURACIJA SEKTORA - BEZ LIMITA
     const sectors = {
       'konobari': { count: 0, listId: 'konobariList' },
@@ -842,11 +1021,9 @@
 
     // INICIJALIZACIJA SEKTORA
     function initializeSectors() {
-      // Učitaj postojeće podatke ili kreiraj default
       for (const sectorName in sectors) {
         const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
         
-        // Ako nema podataka, kreiraj 3 default zaposlena
         if (employees.length === 0) {
           for (let i = 1; i <= 3; i++) {
             employees.push({
@@ -930,7 +1107,6 @@
           employees[employeeIndex].name = newName;
           localStorage.setItem(`sector_${sectorName}`, JSON.stringify(employees));
           
-          // Ažuriraj i kalendarske podatke ako postoje
           const oldCalendarData = localStorage.getItem(`emp_data_${employeeId}`);
           if (oldCalendarData) {
             localStorage.removeItem(`emp_data_${employeeId}`);
@@ -948,7 +1124,6 @@
         localStorage.setItem(`sector_${sectorName}`, JSON.stringify(filteredEmployees));
         sectors[sectorName].count = filteredEmployees.length;
         
-        // Obriši i kalendarske podatke
         localStorage.removeItem(`emp_data_${employeeId}`);
         
         updateSectorDisplay(sectorName);
@@ -965,7 +1140,6 @@
         sector: sectorName
       };
       
-      // Dodaj na početak liste
       employees.unshift(newEmployee);
       localStorage.setItem(`sector_${sectorName}`, JSON.stringify(employees));
       sectors[sectorName].count = employees.length;
@@ -1021,7 +1195,6 @@
         callback(false);
       });
       
-      // Zatvori modal klikom izvan
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
           document.body.removeChild(modal);
@@ -1049,6 +1222,7 @@
       });
       document.getElementById('fixBtn').addEventListener('click', repairAuth);
       document.getElementById('manualBackupBtn').addEventListener('click', showManualBackup);
+      document.getElementById('installBtn').addEventListener('click', showInstallPrompt);
       
       document.getElementById('prevYearBtn').addEventListener('click', () => changeYear(-1));
       document.getElementById('nextYearBtn').addEventListener('click', () => changeYear(1));
@@ -1197,14 +1371,12 @@
       const result = [];
       const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
 
-      // Prođi kroz sve sektore i zaposlene
       for (const sectorName in sectors) {
         const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
         
         for (const employee of employees) {
           const saved = JSON.parse(localStorage.getItem(`emp_data_${employee.id}`) || "{}");
           
-          // Filtriranje podataka samo za odabranu godinu
           const yearlyData = {};
           for (const key in saved) {
             if (key.startsWith(year + '-')) {
@@ -1459,15 +1631,13 @@
         sectors: {},
         calendarData: {},
         lastBackup: new Date().toISOString(),
-        appVersion: "7.0-with-sickness"
+        appVersion: "8.0-pwa-fixed"
       };
 
-      // Sakupi sve sektore
       for (const sectorName in sectors) {
         data.sectors[sectorName] = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
       }
 
-      // Sakupi sve kalendarske podatke
       for (const sectorName in sectors) {
         const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
         for (const employee of employees) {
@@ -1484,14 +1654,12 @@
     async function applyDriveData(driveData) {
       if (!driveData) return;
 
-      // Uvezi sektore
       if (driveData.sectors) {
         for (const sectorName in driveData.sectors) {
           localStorage.setItem(`sector_${sectorName}`, JSON.stringify(driveData.sectors[sectorName]));
         }
       }
 
-      // Uvezi kalendarske podatke
       if (driveData.calendarData) {
         for (const empId in driveData.calendarData) {
           localStorage.setItem(`emp_data_${empId}`, JSON.stringify(driveData.calendarData[empId]));
@@ -1802,17 +1970,14 @@
         try {
           const data = JSON.parse(imported);
           
-          // Provera da li je validan format
           if (!data.sectors) {
             throw new Error('Nevažeći format podataka');
           }
           
-          // Uvezi sektore
           for (const sectorName in data.sectors) {
             localStorage.setItem(`sector_${sectorName}`, JSON.stringify(data.sectors[sectorName]));
           }
           
-          // Uvezi kalendarske podatke
           for (const empId in data.calendarData) {
             localStorage.setItem(`emp_data_${empId}`, JSON.stringify(data.calendarData[empId]));
           }
@@ -1851,6 +2016,8 @@
       initializeEventListeners();
       initializeSectors();
       initAuth();
+      initializePWA();
+      registerServiceWorker();
       fixPwaViewport();
       
       setTimeout(() => {
@@ -1860,15 +2027,6 @@
     
     window.addEventListener('orientationchange', fixPwaViewport);
     window.addEventListener('resize', fixPwaViewport);
-    
-    // Service Worker
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("service-worker.js")
-          .then(() => console.log("✅ Service Worker registrovan"))
-          .catch(err => console.error("❌ Greška pri registraciji Service Workera:", err));
-      });
-    }
   </script>
 </body>
 </html>
