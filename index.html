@@ -80,16 +80,50 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* OPTIMIZOVANO ZA ANDROID */
+    /* SEKTORI ZAPOSLENIH */
+    .sector {
+      margin-bottom: 25px;
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .sector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid;
+    }
+
+    .sector-title {
+      font-size: 18px;
+      font-weight: bold;
+      padding: 5px 15px;
+      border-radius: 20px;
+      color: white;
+    }
+
+    .add-employee-btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
     .employee-list {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 8px;
-      margin-bottom: 15px;
     }
 
     .employee {
-      background: white;
       border-radius: 12px;
       padding: 12px 8px;
       text-align: center;
@@ -101,12 +135,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative;
     }
 
     .employee:active {
       transform: scale(0.98);
-      background: #eaf1ff;
-      border-color: #2563eb;
     }
 
     .employee input {
@@ -121,6 +154,46 @@
       user-select: text;
       padding: 5px;
     }
+
+    .delete-btn {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #EF4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      display: none;
+    }
+
+    .employee:hover .delete-btn {
+      display: block;
+    }
+
+    /* BOJE SEKTORA */
+    .sector-konobari .sector-header { border-color: #10B981; }
+    .sector-konobari .sector-title { background: #10B981; }
+    .sector-konobari .employee { background: #D1FAE5; }
+    .sector-konobari .employee:active { background: #A7F3D0; border-color: #10B981; }
+
+    .sector-sankeri .sector-header { border-color: #F59E0B; }
+    .sector-sankeri .sector-title { background: #F59E0B; }
+    .sector-sankeri .employee { background: #FEF3C7; }
+    .sector-sankeri .employee:active { background: #FDE68A; border-color: #F59E0B; }
+
+    .sector-kuvari .sector-header { border-color: #EF4444; }
+    .sector-kuvari .sector-title { background: #EF4444; }
+    .sector-kuvari .employee { background: #FECACA; }
+    .sector-kuvari .employee:active { background: #FCA5A5; border-color: #EF4444; }
+
+    .sector-ostalo .sector-header { border-color: #3B82F6; }
+    .sector-ostalo .sector-title { background: #3B82F6; }
+    .sector-ostalo .employee { background: #DBEAFE; }
+    .sector-ostalo .employee:active { background: #BFDBFE; border-color: #3B82F6; }
 
     .bottom-bar {
       background: #2563eb;
@@ -391,11 +464,21 @@
         font-size: 16px;
         min-width: 70px;
       }
+
+      .sector {
+        padding: 10px;
+        margin-bottom: 20px;
+      }
+
+      .sector-title {
+        font-size: 16px;
+        padding: 4px 12px;
+      }
     }
 
     @media (max-width: 480px) {
       .employee-list {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
       }
       
       .employee {
@@ -447,6 +530,21 @@
       .year-display {
         font-size: 14px;
         min-width: 60px;
+      }
+
+      .sector {
+        padding: 8px;
+        margin-bottom: 15px;
+      }
+
+      .sector-title {
+        font-size: 14px;
+        padding: 3px 10px;
+      }
+
+      .add-employee-btn {
+        padding: 6px 10px;
+        font-size: 11px;
       }
     }
     
@@ -556,7 +654,38 @@
     </header>
 
     <div class="container main-content scroll-fix">
-      <div class="employee-list" id="employeeList"></div>
+      <!-- SEKTORI ZAPOSLENIH -->
+      <div class="sector sector-konobari">
+        <div class="sector-header">
+          <div class="sector-title">KONOBARI (15)</div>
+          <button class="add-employee-btn" onclick="addEmployee('konobari')">+ Dodaj</button>
+        </div>
+        <div class="employee-list" id="konobariList"></div>
+      </div>
+
+      <div class="sector sector-sankeri">
+        <div class="sector-header">
+          <div class="sector-title">SANKERI (15)</div>
+          <button class="add-employee-btn" onclick="addEmployee('sankeri')">+ Dodaj</button>
+        </div>
+        <div class="employee-list" id="sankeriList"></div>
+      </div>
+
+      <div class="sector sector-kuvari">
+        <div class="sector-header">
+          <div class="sector-title">KUVARI (20)</div>
+          <button class="add-employee-btn" onclick="addEmployee('kuvari')">+ Dodaj</button>
+        </div>
+        <div class="employee-list" id="kuvariList"></div>
+      </div>
+
+      <div class="sector sector-ostalo">
+        <div class="sector-header">
+          <div class="sector-title">OSTALO (15)</div>
+          <button class="add-employee-btn" onclick="addEmployee('ostalo')">+ Dodaj</button>
+        </div>
+        <div class="employee-list" id="ostaloList"></div>
+      </div>
     </div>
 
     <div class="bottom-bar">
@@ -615,29 +744,162 @@
   </div>
 
   <script>
-    // FIX ZA PWA SKROLOVANJE NA ANDROIDU
-    function fixPwaViewport() {
-      const setVH = () => {
-        const vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-      };
-      
-      setVH();
-      window.addEventListener('resize', setVH);
-      
-      setTimeout(() => {
-        document.body.style.height = window.innerHeight + 'px';
-      }, 100);
-    }
+    // KONFIGURACIJA SEKTORA
+    const sectors = {
+      'konobari': { limit: 15, count: 0, listId: 'konobariList' },
+      'sankeri': { limit: 15, count: 0, listId: 'sankeriList' },
+      'kuvari': { limit: 20, count: 0, listId: 'kuvariList' },
+      'ostalo': { limit: 15, count: 0, listId: 'ostaloList' }
+    };
 
-    // KALENDAR LOGIKA
-    const total = 50;
     let currentMode = "free";
     let currentEmployeeId = null;
     let currentYear = new Date().getFullYear();
     let currentManagerYear = new Date().getFullYear();
 
-    // Inicijalizacija event listenera
+    // INICIJALIZACIJA SEKTORA
+    function initializeSectors() {
+      // Učitaj postojeće podatke ili kreiraj default
+      for (const sectorName in sectors) {
+        const sector = sectors[sectorName];
+        const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
+        
+        // Ako nema podataka, kreiraj default zaposlene
+        if (employees.length === 0) {
+          for (let i = 1; i <= sector.limit; i++) {
+            employees.push({
+              id: `${sectorName}_${i}`,
+              name: `${getSectorDisplayName(sectorName)} ${i}`,
+              sector: sectorName
+            });
+          }
+          localStorage.setItem(`sector_${sectorName}`, JSON.stringify(employees));
+        }
+        
+        sector.count = employees.length;
+        updateSectorDisplay(sectorName);
+        renderSector(sectorName);
+      }
+    }
+
+    function getSectorDisplayName(sector) {
+      const names = {
+        'konobari': 'Konobar',
+        'sankeri': 'Sanker', 
+        'kuvari': 'Kuvar',
+        'ostalo': 'Zaposleni'
+      };
+      return names[sector] || 'Zaposleni';
+    }
+
+    function updateSectorDisplay(sectorName) {
+      const sector = sectors[sectorName];
+      const titleElement = document.querySelector(`.sector-${sectorName} .sector-title`);
+      if (titleElement) {
+        titleElement.textContent = `${sectorName.toUpperCase()} (${sector.count}/${sector.limit})`;
+      }
+    }
+
+    function renderSector(sectorName) {
+      const sector = sectors[sectorName];
+      const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
+      const listElement = document.getElementById(sector.listId);
+      
+      listElement.innerHTML = '';
+      
+      employees.forEach(employee => {
+        const employeeElement = createEmployeeElement(employee);
+        listElement.appendChild(employeeElement);
+      });
+    }
+
+    function createEmployeeElement(employee) {
+      const div = document.createElement('div');
+      div.className = 'employee';
+      div.setAttribute('data-id', employee.id);
+      div.setAttribute('data-sector', employee.sector);
+      
+      const input = document.createElement('input');
+      input.value = employee.name;
+      input.addEventListener('input', (e) => {
+        updateEmployeeName(employee.id, e.target.value);
+      });
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '×';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteEmployee(employee.id, employee.sector);
+      };
+      
+      div.appendChild(input);
+      div.appendChild(deleteBtn);
+      div.addEventListener('click', () => openCalendar(employee.name, employee.id));
+      
+      return div;
+    }
+
+    function updateEmployeeName(employeeId, newName) {
+      for (const sectorName in sectors) {
+        const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
+        const employeeIndex = employees.findIndex(emp => emp.id === employeeId);
+        
+        if (employeeIndex !== -1) {
+          employees[employeeIndex].name = newName;
+          localStorage.setItem(`sector_${sectorName}`, JSON.stringify(employees));
+          
+          // Ažuriraj i kalendarske podatke ako postoje
+          const oldCalendarData = localStorage.getItem(`emp_data_${employeeId}`);
+          if (oldCalendarData) {
+            localStorage.removeItem(`emp_data_${employeeId}`);
+          }
+          break;
+        }
+      }
+    }
+
+    function deleteEmployee(employeeId, sectorName) {
+      if (confirm(`Da li ste sigurni da želite da obrišete ovog zaposlenog?`)) {
+        const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
+        const filteredEmployees = employees.filter(emp => emp.id !== employeeId);
+        
+        localStorage.setItem(`sector_${sectorName}`, JSON.stringify(filteredEmployees));
+        sectors[sectorName].count = filteredEmployees.length;
+        
+        // Obriši i kalendarske podatke
+        localStorage.removeItem(`emp_data_${employeeId}`);
+        
+        updateSectorDisplay(sectorName);
+        renderSector(sectorName);
+      }
+    }
+
+    function addEmployee(sectorName) {
+      const sector = sectors[sectorName];
+      if (sector.count >= sector.limit) {
+        alert(`Dostigli ste maksimalan broj zaposlenih u sektoru ${sectorName.toUpperCase()} (${sector.limit})`);
+        return;
+      }
+      
+      const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
+      const newId = `${sectorName}_${Date.now()}`;
+      const newEmployee = {
+        id: newId,
+        name: `Novi ${getSectorDisplayName(sectorName)}`,
+        sector: sectorName
+      };
+      
+      // Dodaj na početak liste
+      employees.unshift(newEmployee);
+      localStorage.setItem(`sector_${sectorName}`, JSON.stringify(employees));
+      sectors[sectorName].count = employees.length;
+      
+      updateSectorDisplay(sectorName);
+      renderSector(sectorName);
+    }
+
+    // OSTALE FUNKCIJE OSTAJU ISTE (samo zamjeni initializeEmployees sa initializeSectors)
     function initializeEventListeners() {
       document.getElementById('slobodniBtn').addEventListener('click', () => setMode('free'));
       document.getElementById('godisnjiBtn').addEventListener('click', () => setMode('vacation'));
@@ -648,47 +910,33 @@
       document.getElementById('fixBtn').addEventListener('click', repairAuth);
       document.getElementById('manualBackupBtn').addEventListener('click', showManualBackup);
       
-      // Godišnji selektori za kalendar
       document.getElementById('prevYearBtn').addEventListener('click', () => changeYear(-1));
       document.getElementById('nextYearBtn').addEventListener('click', () => changeYear(1));
       
-      // Godišnji selektori za manager
       document.getElementById('managerPrevYearBtn').addEventListener('click', () => changeManagerYear(-1));
       document.getElementById('managerNextYearBtn').addEventListener('click', () => changeManagerYear(1));
     }
 
-    // Promena godine u kalendaru
     function changeYear(delta) {
       currentYear += delta;
       document.getElementById('currentYear').textContent = currentYear;
-      const name = localStorage.getItem("emp_" + currentEmployeeId) || "Zaposleni " + currentEmployeeId;
+      const name = getEmployeeName(currentEmployeeId);
       generateCalendar(name, currentEmployeeId, currentYear);
     }
 
-    // Promena godine u manager pregledu
     function changeManagerYear(delta) {
       currentManagerYear += delta;
       document.getElementById('managerCurrentYear').textContent = currentManagerYear;
       generateManagerReport(currentManagerYear);
     }
 
-    // Učitaj zaposlene
-    function initializeEmployees() {
-      const employeeList = document.getElementById("employeeList");
-      employeeList.innerHTML = '';
-      
-      for (let i = 1; i <= total; i++) {
-        const div = document.createElement("div");
-        div.className = "employee";
-        const input = document.createElement("input");
-        input.value = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-        input.addEventListener("input", () => {
-          localStorage.setItem("emp_" + i, input.value);
-        });
-        div.appendChild(input);
-        div.addEventListener("click", () => openCalendar(input.value, i));
-        employeeList.appendChild(div);
+    function getEmployeeName(employeeId) {
+      for (const sectorName in sectors) {
+        const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
+        const employee = employees.find(emp => emp.id === employeeId);
+        if (employee) return employee.name;
       }
+      return "Zaposleni";
     }
 
     function setMode(mode) { 
@@ -700,7 +948,7 @@
       document.getElementById('calendarScreen').style.display = 'flex';
       document.getElementById('calendarTitle').textContent = `${name} - Kalendar`;
       currentEmployeeId = id;
-      currentYear = new Date().getFullYear(); // Resetuj na tekuću godinu
+      currentYear = new Date().getFullYear();
       document.getElementById('currentYear').textContent = currentYear;
       generateCalendar(name, id, currentYear);
       
@@ -720,7 +968,7 @@
     }
 
     function generateCalendar(name, id, year = new Date().getFullYear()) {
-      const saved = JSON.parse(localStorage.getItem("emp_data_" + id) || "{}");
+      const saved = JSON.parse(localStorage.getItem(`emp_data_${id}`) || "{}");
       const calendar = document.getElementById("calendar");
       calendar.innerHTML = '';
       
@@ -779,7 +1027,7 @@
               day.classList.add(currentMode);
               saved[key] = currentMode;
             }
-            localStorage.setItem("emp_data_" + id, JSON.stringify(saved));
+            localStorage.setItem(`emp_data_${id}`, JSON.stringify(saved));
           });
 
           daysDiv.appendChild(day);
@@ -793,7 +1041,7 @@
     function showManager() {
       document.getElementById('mainScreen').style.display = 'none';
       document.getElementById('managerScreen').style.display = 'flex';
-      currentManagerYear = new Date().getFullYear(); // Resetuj na tekuću godinu
+      currentManagerYear = new Date().getFullYear();
       document.getElementById('managerCurrentYear').textContent = currentManagerYear;
       generateManagerReport(currentManagerYear);
       
@@ -807,48 +1055,70 @@
       const result = [];
       const months = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
 
-      for (let i = 1; i <= total; i++) {
-        const name = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-        const saved = JSON.parse(localStorage.getItem("emp_data_" + i) || "{}");
+      // Prođi kroz sve sektore i zaposlene
+      for (const sectorName in sectors) {
+        const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
         
-        // Filtriranje podataka samo za odabranu godinu
-        const yearlyData = {};
-        for (const key in saved) {
-          if (key.startsWith(year + '-')) {
-            yearlyData[key] = saved[key];
+        for (const employee of employees) {
+          const saved = JSON.parse(localStorage.getItem(`emp_data_${employee.id}`) || "{}");
+          
+          // Filtriranje podataka samo za odabranu godinu
+          const yearlyData = {};
+          for (const key in saved) {
+            if (key.startsWith(year + '-')) {
+              yearlyData[key] = saved[key];
+            }
           }
-        }
 
-        if (!Object.keys(yearlyData).length) continue;
+          if (!Object.keys(yearlyData).length) continue;
 
-        const monthlyFree = {};
-        const monthlyVacation = {};
-        for (const key in yearlyData) {
-          const [y, m, d] = key.split("-").map(Number);
-          const monthName = months[m - 1];
-          if (yearlyData[key] === "free") monthlyFree[monthName] = (monthlyFree[monthName] || 0) + 1;
-          if (yearlyData[key] === "vacation") monthlyVacation[monthName] = (monthlyVacation[monthName] || 0) + 1;
-        }
+          const monthlyFree = {};
+          const monthlyVacation = {};
+          for (const key in yearlyData) {
+            const [y, m, d] = key.split("-").map(Number);
+            const monthName = months[m - 1];
+            if (yearlyData[key] === "free") monthlyFree[monthName] = (monthlyFree[monthName] || 0) + 1;
+            if (yearlyData[key] === "vacation") monthlyVacation[monthName] = (monthlyVacation[monthName] || 0) + 1;
+          }
 
-        let text = `<h3>${name} - ${year}</h3>`;
-        if (Object.keys(monthlyFree).length) {
-          text += `<p><b>Slobodni dani:</b><br>`;
-          for (const m in monthlyFree) text += `${m}: ${monthlyFree[m]}<br>`;
-          text += `</p>`;
-        }
-        if (Object.keys(monthlyVacation).length) {
-          text += `<p><b>Godišnji odmor:</b><br>`;
-          for (const m in monthlyVacation) text += `${m}: ${monthlyVacation[m]}<br>`;
-          text += `</p>`;
-        }
+          let text = `<h3>${employee.name} - ${year} (${sectorName.toUpperCase()})</h3>`;
+          if (Object.keys(monthlyFree).length) {
+            text += `<p><b>Slobodni dani:</b><br>`;
+            for (const m in monthlyFree) text += `${m}: ${monthlyFree[m]}<br>`;
+            text += `</p>`;
+          }
+          if (Object.keys(monthlyVacation).length) {
+            text += `<p><b>Godišnji odmor:</b><br>`;
+            for (const m in monthlyVacation) text += `${m}: ${monthlyVacation[m]}<br>`;
+            text += `</p>`;
+          }
 
-        result.push(text);
+          result.push(text);
+        }
       }
 
       document.getElementById('managerContent').innerHTML = result.length > 0 ? result.join("<hr>") : `<p style="text-align: center; padding: 20px;">Nema podataka za ${year}. godinu</p>`;
     }
 
-    // 🔐 POBOLJŠANA GOOGLE SINHRONIZACIJA SA AUTO-REPAIR
+    // FIX ZA PWA SKROLOVANJE NA ANDROIDU
+    function fixPwaViewport() {
+      const setVH = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      };
+      
+      setVH();
+      window.addEventListener('resize', setVH);
+      
+      setTimeout(() => {
+        document.body.style.height = window.innerHeight + 'px';
+      }, 100);
+    }
+
+    // OSTALE FUNKCIJE (Google auth, backup, itd.) OSTAJU ISTE KAO U PRETHODNOJ VERZIJI
+    // Samo kopiraj sve funkcije od initAuth() pa do kraja iz prethodnog koda
+
+    // 🔐 GOOGLE AUTH I BACKUP SISTEM (kopiraj iz prethodne verzije)
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
     let accessToken = localStorage.getItem('google_access_token') || null;
     let userEmail = localStorage.getItem('google_user_email') || null;
@@ -902,7 +1172,7 @@
       }
     }
 
-    // 📋 POBOLJŠANI RUČNI BACKUP SISTEM
+    // 📋 POBOLJŠANI RUČNI BACKUP SISTEM (kopiraj iz prethodne verzije)
     function showManualBackup() {
       const allData = getLocalData();
       const jsonStr = JSON.stringify(allData, null, 2);
@@ -910,11 +1180,9 @@
       const choice = confirm("📋 RUČNI BACKUP\n\nOK: Kopiraj podatke (spasi u .txt fajl)\nOtkaži: Učitaj podatke (nalepi iz .txt fajla)");
       
       if (choice) {
-        // KOPIRANJE PODATAKA
         copyToClipboard(jsonStr).then(() => {
           alert("✅ PODACI KOPIRANI!\n\nSada:\n1. Otvori Notepad/Text Editor\n2. Nalepi (Ctrl+V) podatke\n3. Sačuvaj kao 'kalendar_backup.txt'\n\nOvo je tvoj ručni backup!");
         }).catch(() => {
-          // Fallback za mobilne uređaje
           const textArea = document.createElement('textarea');
           textArea.value = jsonStr;
           textArea.style.position = 'fixed';
@@ -937,12 +1205,10 @@
           document.body.removeChild(textArea);
         });
       } else {
-        // UČITAVANJE PODATAKA - POBOLJŠANO
         showImportDialog();
       }
     }
 
-    // Pomoćna funkcija za kopiranje
     function copyToClipboard(text) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         return navigator.clipboard.writeText(text);
@@ -951,7 +1217,6 @@
       }
     }
 
-    // Fallback za prikaz teksta
     function showTextAreaFallback(text) {
       const textArea = document.createElement('textarea');
       textArea.value = text;
@@ -1009,7 +1274,6 @@
       textArea.select();
     }
 
-    // Poboljšani dijalog za učitavanje
     function showImportDialog() {
       const container = document.createElement('div');
       container.style.position = 'fixed';
@@ -1091,7 +1355,6 @@
       
       textArea.focus();
       
-      // Event listeneri
       importBtn.onclick = () => {
         const imported = textArea.value.trim();
         if (!imported) {
@@ -1102,28 +1365,25 @@
         
         try {
           const data = JSON.parse(imported);
-          let importedCount = 0;
           
           // Provera da li je validan format
-          if (!data.employees || !data.calendarData) {
+          if (!data.sectors) {
             throw new Error('Nevažeći format podataka');
           }
           
-          for (let i = 1; i <= 50; i++) {
-            if (data.employees && data.employees[i]) {
-              localStorage.setItem("emp_" + i, data.employees[i]);
-              importedCount++;
-            }
-            if (data.calendarData && data.calendarData[i]) {
-              localStorage.setItem("emp_data_" + i, JSON.stringify(data.calendarData[i]));
-              importedCount++;
-            }
+          // Uvezi sektore
+          for (const sectorName in data.sectors) {
+            localStorage.setItem(`sector_${sectorName}`, JSON.stringify(data.sectors[sectorName]));
           }
           
-          statusDiv.textContent = `✅ Backup uspešno uvezen! (${importedCount} zapisa)`;
+          // Uvezi kalendarske podatke
+          for (const empId in data.calendarData) {
+            localStorage.setItem(`emp_data_${empId}`, JSON.stringify(data.calendarData[empId]));
+          }
+          
+          statusDiv.textContent = `✅ Backup uspešno uvezen!`;
           statusDiv.style.color = '#10B981';
           
-          // Automatski restart nakon 2 sekunde
           setTimeout(() => {
             document.body.removeChild(container);
             alert(`✅ Backup uspešno uvezen!\n\nAplikacija će se sada restartovati da prikaže nove podatke.`);
@@ -1141,7 +1401,6 @@
         document.body.removeChild(container);
       };
       
-      // ESC za zatvaranje
       const escHandler = (e) => {
         if (e.key === 'Escape') {
           document.body.removeChild(container);
@@ -1291,29 +1550,42 @@
     async function applyDriveData(driveData) {
       if (!driveData) return;
 
-      for (let i = 1; i <= 50; i++) {
-        if (driveData.employees && driveData.employees[i]) {
-          localStorage.setItem("emp_" + i, driveData.employees[i]);
+      // Ažuriraj sektore
+      if (driveData.sectors) {
+        for (const sectorName in driveData.sectors) {
+          localStorage.setItem(`sector_${sectorName}`, JSON.stringify(driveData.sectors[sectorName]));
         }
-        if (driveData.calendarData && driveData.calendarData[i]) {
-          localStorage.setItem("emp_data_" + i, JSON.stringify(driveData.calendarData[i]));
+      }
+
+      // Ažuriraj kalendarske podatke
+      if (driveData.calendarData) {
+        for (const empId in driveData.calendarData) {
+          localStorage.setItem(`emp_data_${empId}`, JSON.stringify(driveData.calendarData[empId]));
         }
       }
     }
 
     function getLocalData() {
       const data = {
-        employees: {},
+        sectors: {},
         calendarData: {},
         lastBackup: new Date().toISOString(),
-        appVersion: "5.0-multi-year"
+        appVersion: "6.0-sector-system"
       };
 
-      for (let i = 1; i <= 50; i++) {
-        data.employees[i] = localStorage.getItem("emp_" + i) || "Zaposleni " + i;
-        const empData = localStorage.getItem("emp_data_" + i);
-        if (empData && empData !== "{}") {
-          data.calendarData[i] = JSON.parse(empData);
+      // Sakupi sve sektore
+      for (const sectorName in sectors) {
+        data.sectors[sectorName] = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
+      }
+
+      // Sakupi sve kalendarske podatke
+      for (const sectorName in sectors) {
+        const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
+        for (const employee of employees) {
+          const empData = localStorage.getItem(`emp_data_${employee.id}`);
+          if (empData && empData !== "{}") {
+            data.calendarData[employee.id] = JSON.parse(empData);
+          }
         }
       }
 
@@ -1429,10 +1701,10 @@
       }, 3000);
     }
 
-    // Inicijalizacija
+    // INICIJALIZACIJA
     window.addEventListener('load', () => {
       initializeEventListeners();
-      initializeEmployees();
+      initializeSectors(); // Ovo je nova funkcija umesto initializeEmployees
       initAuth();
       fixPwaViewport();
       
