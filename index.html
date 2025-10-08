@@ -657,7 +657,7 @@
       <!-- SEKTORI ZAPOSLENIH -->
       <div class="sector sector-konobari">
         <div class="sector-header">
-          <div class="sector-title">KONOBARI (15)</div>
+          <div class="sector-title">KONOBARI </div>
           <button class="add-employee-btn" onclick="addEmployee('konobari')">+ Dodaj</button>
         </div>
         <div class="employee-list" id="konobariList"></div>
@@ -665,7 +665,7 @@
 
       <div class="sector sector-sankeri">
         <div class="sector-header">
-          <div class="sector-title">SANKERI (15)</div>
+          <div class="sector-title">SANKERI </div>
           <button class="add-employee-btn" onclick="addEmployee('sankeri')">+ Dodaj</button>
         </div>
         <div class="employee-list" id="sankeriList"></div>
@@ -673,7 +673,7 @@
 
       <div class="sector sector-kuvari">
         <div class="sector-header">
-          <div class="sector-title">KUVARI (20)</div>
+          <div class="sector-title">KUVARI </div>
           <button class="add-employee-btn" onclick="addEmployee('kuvari')">+ Dodaj</button>
         </div>
         <div class="employee-list" id="kuvariList"></div>
@@ -681,7 +681,7 @@
 
       <div class="sector sector-ostalo">
         <div class="sector-header">
-          <div class="sector-title">OSTALO (15)</div>
+          <div class="sector-title">OSTALO </div>
           <button class="add-employee-btn" onclick="addEmployee('ostalo')">+ Dodaj</button>
         </div>
         <div class="employee-list" id="ostaloList"></div>
@@ -746,10 +746,10 @@
   <script>
     // KONFIGURACIJA SEKTORA
     const sectors = {
-      'konobari': { limit: 15, count: 0, listId: 'konobariList' },
-      'sankeri': { limit: 15, count: 0, listId: 'sankeriList' },
-      'kuvari': { limit: 20, count: 0, listId: 'kuvariList' },
-      'ostalo': { limit: 15, count: 0, listId: 'ostaloList' }
+      'konobari': { count: 0, listId: 'konobariList' },
+      'sankeri': { count: 0, listId: 'sankeriList' },
+      'kuvari': { count: 0, listId: 'kuvariList' },
+      'ostalo': { count: 0, listId: 'ostaloList' }
     };
 
     let currentMode = "free";
