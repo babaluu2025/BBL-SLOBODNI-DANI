@@ -203,10 +203,15 @@
     .sector-kuvari .employee { background: #FECACA; }
     .sector-kuvari .employee:active { background: #FCA5A5; border-color: #EF4444; }
 
-    .sector-ostalo .sector-header { border-color: #3B82F6; }
-    .sector-ostalo .sector-title { background: #3B82F6; }
-    .sector-ostalo .employee { background: #DBEAFE; }
-    .sector-ostalo .employee:active { background: #BFDBFE; border-color: #3B82F6; }
+    .sector-operativa .sector-header { border-color: #3B82F6; }
+    .sector-operativa .sector-title { background: #3B82F6; }
+    .sector-operativa .employee { background: #DBEAFE; }
+    .sector-operativa .employee:active { background: #BFDBFE; border-color: #3B82F6; }
+
+    .sector-higijena .sector-header { border-color: #F59E0B; }
+    .sector-higijena .sector-title { background: #F59E0B; }
+    .sector-higijena .employee { background: #FEF3C7; }
+    .sector-higijena .employee:active { background: #FDE68A; border-color: #F59E0B; }
 
     .bottom-bar {
       background: #2563eb;
@@ -847,12 +852,20 @@
         <div class="employee-list" id="kuvariList"></div>
       </div>
 
-      <div class="sector sector-ostalo">
+      <div class="sector sector-operativa">
         <div class="sector-header">
-          <div class="sector-title">OSTALO</div>
-          <button class="add-employee-btn" onclick="addEmployee('ostalo')">+ Dodaj</button>
+          <div class="sector-title">OPERATIVA</div>
+          <button class="add-employee-btn" onclick="addEmployee('operativa')">+ Dodaj</button>
         </div>
-        <div class="employee-list" id="ostaloList"></div>
+        <div class="employee-list" id="operativaList"></div>
+      </div>
+
+      <div class="sector sector-higijena">
+        <div class="sector-header">
+          <div class="sector-title">HIGIJENA</div>
+          <button class="add-employee-btn" onclick="addEmployee('higijena')">+ Dodaj</button>
+        </div>
+        <div class="employee-list" id="higijenaList"></div>
       </div>
     </div>
 
@@ -1006,12 +1019,13 @@
       }
     }
 
-    // KONFIGURACIJA SEKTORA - BEZ LIMITA
+    // KONFIGURACIJA SEKTORA
     const sectors = {
       'konobari': { count: 0, listId: 'konobariList' },
       'sankeri': { count: 0, listId: 'sankeriList' },
       'kuvari': { count: 0, listId: 'kuvariList' },
-      'ostalo': { count: 0, listId: 'ostaloList' }
+      'operativa': { count: 0, listId: 'operativaList' },
+      'higijena': { count: 0, listId: 'higijenaList' }
     };
 
     let currentMode = "free";
@@ -1021,9 +1035,18 @@
 
     // INICIJALIZACIJA SEKTORA
     function initializeSectors() {
+      // MIGRACIJA: prebaci podatke iz 'ostalo' u 'operativa'
+      if (localStorage.getItem('sector_ostalo') && !localStorage.getItem('sector_operativa')) {
+        const ostaloData = localStorage.getItem('sector_ostalo');
+        localStorage.setItem('sector_operativa', ostaloData);
+        localStorage.removeItem('sector_ostalo');
+      }
+      
+      // Učitaj postojeće podatke ili kreiraj default
       for (const sectorName in sectors) {
         const employees = JSON.parse(localStorage.getItem(`sector_${sectorName}`) || '[]');
         
+        // Ako nema podataka, kreiraj 3 default zaposlena
         if (employees.length === 0) {
           for (let i = 1; i <= 3; i++) {
             employees.push({
@@ -1046,7 +1069,8 @@
         'konobari': 'Konobar',
         'sankeri': 'Sanker', 
         'kuvari': 'Kuvar',
-        'ostalo': 'Zaposleni'
+        'operativa': 'Operativa',
+        'higijena': 'Higijena'
       };
       return names[sector] || 'Zaposleni';
     }
@@ -1104,12 +1128,20 @@
         const employeeIndex = employees.findIndex(emp => emp.id === employeeId);
         
         if (employeeIndex !== -1) {
-          employees[employeeIndex].name = newName;
-          localStorage.setItem(`sector_${sectorName}`, JSON.stringify(employees));
+          const oldEmployee = employees[employeeIndex];
           
-          const oldCalendarData = localStorage.getItem(`emp_data_${employeeId}`);
-          if (oldCalendarData) {
-            localStorage.removeItem(`emp_data_${employeeId}`);
+          // PROVERA: Da li se promenilo samo ime ili je novi zaposleni?
+          if (oldEmployee.name !== newName) {
+            // ČUVANJE KALENDARSKIH PODATAKA
+            const calendarData = localStorage.getItem(`emp_data_${employeeId}`);
+            
+            employees[employeeIndex].name = newName;
+            localStorage.setItem(`sector_${sectorName}`, JSON.stringify(employees));
+            
+            // VRATI KALENDARSKE PODATKE ako postoje
+            if (calendarData) {
+              localStorage.setItem(`emp_data_${employeeId}`, calendarData);
+            }
           }
           break;
         }
@@ -1124,6 +1156,7 @@
         localStorage.setItem(`sector_${sectorName}`, JSON.stringify(filteredEmployees));
         sectors[sectorName].count = filteredEmployees.length;
         
+        // Obriši i kalendarske podatke
         localStorage.removeItem(`emp_data_${employeeId}`);
         
         updateSectorDisplay(sectorName);
@@ -1140,6 +1173,7 @@
         sector: sectorName
       };
       
+      // Dodaj na početak liste
       employees.unshift(newEmployee);
       localStorage.setItem(`sector_${sectorName}`, JSON.stringify(employees));
       sectors[sectorName].count = employees.length;
@@ -1436,7 +1470,7 @@
       }, 100);
     }
 
-    // GOOGLE AUTH I BACKUP SISTEM (pojednostavljen)
+    // GOOGLE AUTH I BACKUP SISTEM
     const CLIENT_ID = "778110423475-mo7qh57tcbfsnqlcojr1eu24e9obec5f.apps.googleusercontent.com";
     let accessToken = localStorage.getItem('google_access_token') || null;
     let userEmail = localStorage.getItem('google_user_email') || null;
@@ -1631,7 +1665,7 @@
         sectors: {},
         calendarData: {},
         lastBackup: new Date().toISOString(),
-        appVersion: "8.0-pwa-fixed"
+        appVersion: "9.0-operativa-higijena"
       };
 
       for (const sectorName in sectors) {
